@@ -18,6 +18,7 @@ import { AdminProvider } from './components/contexts/AdminContext'
 function AppRoutes() {
   const { isLoggedIn } = useAuth()
   const baseURL = process.env.PUBLIC_URL;
+  console.log('baseURL: ', baseURL);
 
   return (
     <Routes>
