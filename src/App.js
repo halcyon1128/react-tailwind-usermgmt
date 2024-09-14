@@ -17,31 +17,32 @@ import { AdminProvider } from './components/contexts/AdminContext'
 
 function AppRoutes() {
   const { isLoggedIn } = useAuth()
+  const baseURL = process.env.PUBLIC_URL;
 
   return (
     <Routes>
-      <Route path="/login" element={!isLoggedIn ? <Login /> : <Navigate to="/users" />} />
+      <Route exact path={`${baseURL}/login`} element={!isLoggedIn ? <Login /> : <Navigate to="/users" />} />
       <Route
-        path="/users"
+        path={`${baseURL}/users`}
         element={isLoggedIn ? <Users /> : <Navigate to="/login" />}
       />
       <Route
-        path="/edit/:id"
+        path={`${baseURL}/edit/:id`}
         element={isLoggedIn ? <Edit /> : <Navigate to="/login" />}
       />
       <Route
-        path="/settings"
+        path={`${baseURL}/settings`}
         element={isLoggedIn ? <Settings /> : <Navigate to="/login" />}
       />
       <Route
-        path="/adduser"
+        path={`${baseURL}/adduser`}
         element={isLoggedIn ? <AddUser /> : <Navigate to="/login" />}
       />
       <Route
-        path="/table"
+        path={`${baseURL}/table`}
         element={isLoggedIn ? <Table /> : <Navigate to="/login" />}
       />
-      <Route path="*" element={<Navigate to={isLoggedIn ? "/users" : "/login"} />} />
+      <Route path="*" element={<Navigate to={isLoggedIn ? `${baseURL}/users` : `${baseURL}/login`} />} />
     </Routes>
   )
 }
