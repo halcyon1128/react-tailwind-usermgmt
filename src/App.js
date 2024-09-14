@@ -14,6 +14,7 @@ import Table from './components/Table'
 import { AuthProvider, useAuth } from './components/contexts/AuthContext' // Import the AuthProvider
 import { UserProvider } from './components/contexts/UserContext' // Import the UserProvider
 import { AdminProvider } from './components/contexts/AdminContext'
+import ArrayDatabase from './components/ArrayDatabase'
 
 function AppRoutes() {
   const { isLoggedIn } = useAuth()
@@ -21,7 +22,9 @@ function AppRoutes() {
   console.log('baseURL: ', baseURL);
 
   return (
+
     <Routes>
+
       <Route exact path={`${baseURL}/login`} element={!isLoggedIn ? <Login /> : <Navigate to="/users" />} />
       <Route
         path={`${baseURL}/users`}
@@ -50,15 +53,17 @@ function AppRoutes() {
 
 function App() {
   return (
-    <AdminProvider>
-      <AuthProvider>
-        <UserProvider>
-          <Router>
-            <AppRoutes />
-          </Router>
-        </UserProvider>
-      </AuthProvider>
-    </AdminProvider>
+    <ArrayDatabase>
+      <AdminProvider>
+        <AuthProvider>
+          <UserProvider>
+            <Router>
+              <AppRoutes />
+            </Router>
+          </UserProvider>
+        </AuthProvider>
+      </AdminProvider>
+    </ArrayDatabase>
   )
 }
 

@@ -1,7 +1,11 @@
-import { useState, useEffect } from 'react';
+// ArrayDatabase.js
+import React, { createContext, useContext, useEffect } from 'react';
 
-const ArrayDatabase = () => {
-  // Initialize adminDatabase from localStorage or with default values
+// Create the context
+const ArrayDatabaseContext = createContext();
+
+// Create the provider component
+const ArrayDatabase = ({ children }) => {
   useEffect(() => {
     const storedAdmin = localStorage.getItem('adminDatabase');
     if (!storedAdmin) {
@@ -17,7 +21,6 @@ const ArrayDatabase = () => {
     }
   }, []);
 
-  // Initialize userDatabase from localStorage or with default values
   useEffect(() => {
     const storedUsers = localStorage.getItem('userDatabase');
     if (!storedUsers) {
@@ -37,7 +40,21 @@ const ArrayDatabase = () => {
     }
   }, []);
 
-  return null;
+  // Provide values or functions if needed
+  return (
+    <ArrayDatabaseContext.Provider value={{}}>
+      {children}
+    </ArrayDatabaseContext.Provider>
+  );
+};
+
+// Create a custom hook to use the context
+export const useArrayDatabase = () => {
+  const context = useContext(ArrayDatabaseContext);
+  if (context === undefined) {
+    throw new Error('useArrayDatabase must be used within an ArrayDatabase');
+  }
+  return context;
 };
 
 export default ArrayDatabase;
