@@ -27,29 +27,28 @@ function AppRoutes() {
     <BrowserRouter basename={baseURL}>
 
       <Routes>
-
-        <Route exact path={`${baseURL}/login`} element={!isLoggedIn ? <Login /> : <Navigate to="/users" />} />
+        <Route exact path="/login" element={!isLoggedIn ? <Login /> : <Navigate to="/users" />} />
         <Route
-          path={`${baseURL}/users`}
+          path={'/users'}
           element={isLoggedIn ? <Users /> : <Navigate to="/login" />}
         />
         <Route
-          path={`${baseURL}/edit/:id`}
+          path={`/edit/:id`}
           element={isLoggedIn ? <Edit /> : <Navigate to="/login" />}
         />
         <Route
-          path={`${baseURL}/settings`}
+          path={`/settings`}
           element={isLoggedIn ? <Settings /> : <Navigate to="/login" />}
         />
         <Route
-          path={`${baseURL}/adduser`}
+          path={`/adduser`}
           element={isLoggedIn ? <AddUser /> : <Navigate to="/login" />}
         />
         <Route
-          path={`${baseURL}/table`}
+          path={`/table`}
           element={isLoggedIn ? <Table /> : <Navigate to="/login" />}
         />
-        <Route path="*" element={<Navigate to={isLoggedIn ? `${baseURL}/users` : `${baseURL}/login`} />} />
+        <Route path="*" element={<Navigate to={isLoggedIn ? `/users` : `/login`} />} />
       </Routes>
 
     </BrowserRouter>
