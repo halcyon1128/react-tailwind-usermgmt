@@ -11,6 +11,8 @@ function Login() {
   const { adminDatabase } = useAdminContext()
   const navigate = useNavigate()
 
+  console.log()
+
   // Regex for validating email format
   const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -32,6 +34,11 @@ function Login() {
     console.log(`Admin database: ${JSON.stringify(adminDatabase)}`, 'for debug purposes only; removed upon deployment');
   }, [adminDatabase]); // Dependency ensures the effect runs when adminDatabase changes
 
+  // Inside handleSubmit
+  console.log('Email:', email)
+  console.log('Password:', password)
+  console.log('Admin Database:', adminDatabase)
+  console.log('Is Admin:', authenticateAdmin(email, password))
 
   const handleSubmit = (event) => {
     event.preventDefault()
@@ -78,11 +85,7 @@ function Login() {
         break
     }
 
-    // Inside handleSubmit
-    console.log('Email:', email)
-    console.log('Password:', password)
-    console.log('Admin Database:', adminDatabase)
-    console.log('Is Admin:', authenticateAdmin(email, password))
+
   }
 
   return (
