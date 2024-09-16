@@ -4,7 +4,6 @@ import {
   Routes,
   Route,
   Navigate,
-  BrowserRouter,
 } from 'react-router-dom'
 import Login from './components/Login'
 import Users from './components/Users'
@@ -19,13 +18,8 @@ import ArrayDatabase from './components/ArrayDatabase'
 
 function AppRoutes() {
   const { isLoggedIn } = useAuth()
-  const baseURL = process.env.PUBLIC_URL;
-
 
   return (
-
-
-
     <Routes>
       <Route exact path="/login" element={!isLoggedIn ? <Login /> : <Navigate to="/users" />} />
       <Route
@@ -50,8 +44,6 @@ function AppRoutes() {
       />
       <Route path="*" element={<Navigate to={isLoggedIn ? `/users` : `/login`} />} />
     </Routes>
-
-
   )
 }
 
