@@ -20,38 +20,38 @@ import ArrayDatabase from './components/ArrayDatabase'
 function AppRoutes() {
   const { isLoggedIn } = useAuth()
   const baseURL = process.env.PUBLIC_URL;
-  console.log('baseURL: ', baseURL);
+
 
   return (
 
-    <BrowserRouter basename={baseURL}>
 
-      <Routes>
-        <Route exact path="/login" element={!isLoggedIn ? <Login /> : <Navigate to="/users" />} />
-        <Route
-          path={'/users'}
-          element={isLoggedIn ? <Users /> : <Navigate to="/login" />}
-        />
-        <Route
-          path={`/edit/:id`}
-          element={isLoggedIn ? <Edit /> : <Navigate to="/login" />}
-        />
-        <Route
-          path={`/settings`}
-          element={isLoggedIn ? <Settings /> : <Navigate to="/login" />}
-        />
-        <Route
-          path={`/adduser`}
-          element={isLoggedIn ? <AddUser /> : <Navigate to="/login" />}
-        />
-        <Route
-          path={`/table`}
-          element={isLoggedIn ? <Table /> : <Navigate to="/login" />}
-        />
-        <Route path="*" element={<Navigate to={isLoggedIn ? `/users` : `/login`} />} />
-      </Routes>
 
-    </BrowserRouter>
+    <Routes>
+      <Route exact path="/login" element={!isLoggedIn ? <Login /> : <Navigate to="/users" />} />
+      <Route
+        path={'/users'}
+        element={isLoggedIn ? <Users /> : <Navigate to="/login" />}
+      />
+      <Route
+        path={`/edit/:id`}
+        element={isLoggedIn ? <Edit /> : <Navigate to="/login" />}
+      />
+      <Route
+        path={`/settings`}
+        element={isLoggedIn ? <Settings /> : <Navigate to="/login" />}
+      />
+      <Route
+        path={`/adduser`}
+        element={isLoggedIn ? <AddUser /> : <Navigate to="/login" />}
+      />
+      <Route
+        path={`/table`}
+        element={isLoggedIn ? <Table /> : <Navigate to="/login" />}
+      />
+      <Route path="*" element={<Navigate to={isLoggedIn ? `/users` : `/login`} />} />
+    </Routes>
+
+
   )
 }
 
