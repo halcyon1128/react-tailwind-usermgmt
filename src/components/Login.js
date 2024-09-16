@@ -11,7 +11,16 @@ function Login() {
   const { adminDatabase } = useAdminContext()
   const navigate = useNavigate()
 
-  console.log()
+  // Fetch adminDatabase from local storage and log it
+  useEffect(() => {
+    const storedAdminDatabase = localStorage.getItem('adminDatabase')
+    if (storedAdminDatabase) {
+      const adminDatabase = JSON.parse(storedAdminDatabase)
+      console.log('Admin Database from Local Storage:', adminDatabase)
+    } else {
+      console.log('No admin database found in local storage.')
+    }
+  }, [])
 
   // Regex for validating email format
   const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
