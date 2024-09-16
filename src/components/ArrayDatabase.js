@@ -104,6 +104,7 @@ const ArrayDatabase = ({ children }) => {
   // Provide values or functions if needed
   return (
     <ArrayDatabaseContext.Provider value={{}}>
+      <div>ArrayDatabase Component Loaded</div> {/* Add this line */}
       {children}
     </ArrayDatabaseContext.Provider>
   );
