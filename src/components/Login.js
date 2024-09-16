@@ -137,7 +137,7 @@ function Login() {
               Login
             </button>
 
-            <p className='text-xs text-red-500 text-center font-semibold'> if ArrayDatabase test div does not show up it did not load</p>
+            {/* <p className='text-xs text-red-500 text-center font-semibold'> if ArrayDatabase test div does not show up it did not load</p> */}
           </form>
         </section>
       </div>
