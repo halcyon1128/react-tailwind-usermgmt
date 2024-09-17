@@ -12,8 +12,8 @@ function TestComponent() {
   }, []);
 
   return (
-    <div className="test-component container overflow-auto max-w-sm max-h-sm">
-      <h1>User Database</h1>
+    <div className="test-component container overflow-auto max-w-sm max-h-sm mt-5 text-xs">
+      <h1 className='mb-2'>Users (FOR DEBUGGING PURPOSES ONLY!!!)</h1>
       {userDatabase.length === 0 ? (
         <p>No user data available.</p>
       ) : (

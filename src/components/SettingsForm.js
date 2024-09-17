@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUserContext } from './contexts/UserContext';
 import { useArrayDatabase } from './contexts/ArrayDatabase';
+import ConfirmationDialog from './ConfirmationDialog';
 
 const SettingsForm = () => {
   const [loggedUser, setLoggedUser] = useState(null);
@@ -11,11 +12,12 @@ const SettingsForm = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [showDialog, setShowDialog] = useState(false);
+  const [submitData, setSubmitData] = useState(null);
   const navigate = useNavigate();
   const { modifyUser } = useUserContext();
   const { setCurrentUser } = useArrayDatabase();
   const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -60,7 +62,6 @@ const SettingsForm = () => {
       currentPasswordRequired: !currentPassword,
       newPasswordRequired: !newPassword,
       confirmPasswordRequired: !confirmPassword,
-      newPasswordSameAsCurrent: newPassword === currentPassword,
       confirmPasswordMismatch: confirmPassword !== newPassword,
       nameTaken: nameExists,
       emailTaken: emailExists,
@@ -85,9 +86,6 @@ const SettingsForm = () => {
       case validationErrors.confirmPasswordRequired:
         setError('Confirm password is required');
         break;
-      case validationErrors.newPasswordSameAsCurrent:
-        setError('New password cannot be the same as current password');
-        break;
       case validationErrors.confirmPasswordMismatch:
         setError('Confirm password does not match new password');
         break;
@@ -98,27 +96,40 @@ const SettingsForm = () => {
         setError('Email is already taken');
         break;
       default:
-        const updatedUser = {
+        if (newPassword === currentPassword) {
+          alert('New password is the same as current password!');
+        }
+        setSubmitData({
           id: loggedUser.id,
           name,
           email,
-          password: newPassword // Update the password field
-        };
-        modifyUser(loggedUser.id, updatedUser);
-        setCurrentUser(updatedUser);
-        console.log('User updated:', updatedUser);
-        console.log('Logged user:', JSON.stringify('currentUser'));
-        console.log('User Database from Local Storage:', userDatabase);
-        setName('');
-        setEmail('');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setError('');
-        alert('Your user settings were successfully updated!');
-        navigate('/users');
+          password: newPassword
+        });
+        setShowDialog(true);
         break;
     }
+  };
+
+  const handleDialogConfirm = () => {
+    if (submitData) {
+      modifyUser(submitData.id, submitData);
+      setCurrentUser(submitData);
+      console.log('User updated:', submitData);
+      console.log('User Database from Local Storage:', JSON.parse(localStorage.getItem('userDatabase')));
+      setName('');
+      setEmail('');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setError('');
+      alert('Your user settings were successfully updated!');
+      navigate('/users');
+    }
+    setShowDialog(false);
+  };
+
+  const handleDialogCancel = () => {
+    setShowDialog(false);
   };
 
   return (
@@ -194,6 +205,13 @@ const SettingsForm = () => {
           </div>
         </form>
       </div>
+      {showDialog && (
+        <ConfirmationDialog
+          message="Are you sure you want to update your settings?"
+          onConfirm={handleDialogConfirm}
+          onCancel={handleDialogCancel}
+        />
+      )}
     </section>
   );
 };

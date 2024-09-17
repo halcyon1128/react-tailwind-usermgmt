@@ -2,15 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUserContext } from './contexts/UserContext';
 import { useArrayDatabase } from './contexts/ArrayDatabase';
+import ConfirmationDialog from './ConfirmationDialog';
 
 const EditForm = () => {
   const { id } = useParams(); // Get the user ID from the URL
   const { userDatabase, modifyUser } = useUserContext();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [showDialog, setShowDialog] = useState(false);
+  const [submitData, setSubmitData] = useState(null);
   const { setCurrentUser } = useArrayDatabase();
   const navigate = useNavigate();
   const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -20,7 +24,7 @@ const EditForm = () => {
     if (user) {
       setName(user.name);
       setEmail(user.email);
-      setNewPassword(user.password);
+      setCurrentPassword(user.password); // Fetch the current password
     }
   }, [id, userDatabase]);
 
@@ -41,11 +45,9 @@ const EditForm = () => {
       nameRequired: !name,
       emailRequired: !email,
       newPasswordRequired: !newPassword,
-
       invalidEmailFormat: !emailFormatRegex.test(email),
       emailExists: userDatabase.some((user) => user.email === email && user.id !== parseInt(id)),
       nameExists: userDatabase.some((user) => user.name === name && user.id !== parseInt(id)),
-      // incorrectCurrentPassword: currentPassword !== userDatabase.find((user) => user.id === parseInt(id)).password,
       passwordsDoNotMatch: newPassword !== confirmPassword,
     };
 
@@ -65,12 +67,6 @@ const EditForm = () => {
       case validationErrors.emailExists:
         setError('Email already exists');
         break;
-      // case validationErrors.currentPasswordRequired:
-      //   setError('Current password is required');
-      //   break;
-      // case validationErrors.incorrectCurrentPassword:
-      //   setError(`Current password is incorrect. Expected password: ${userDatabase.find((user) => user.id === parseInt(id)).password}`);
-      //   break;
       case validationErrors.newPasswordRequired:
         setError('New password is required');
         break;
@@ -78,25 +74,40 @@ const EditForm = () => {
         setError('New password and confirm password do not match');
         break;
       default:
-        const updatedUser = {
+        if (newPassword === currentPassword) {
+          // Alert if new password is the same as the current password
+          alert('New password is the same as current password!');
+        }
+        setSubmitData({
           id: parseInt(id),
           name,
-          email, //set email(object attrib) as email(from input) 
-          password: newPassword, // Only update password if newPassword is provided
-        };
-        modifyUser(parseInt(id), updatedUser);
-        setCurrentUser(updatedUser);
-        console.log('User updated:', updatedUser);
-        console.log('User Database from Local Storage:', userDatabase);
-        setName('');
-        setEmail('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setError('');
-        alert('Existing user updated successfully');
-        navigate('/users');
+          email,
+          password: newPassword,
+        });
+        setShowDialog(true);
         break;
     }
+  };
+
+  const handleDialogConfirm = () => {
+    if (submitData) {
+      modifyUser(submitData.id, submitData);
+      setCurrentUser(submitData);
+      console.log('User updated:', submitData);
+      console.log('User Database from Local Storage:', userDatabase);
+      setName('');
+      setEmail('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setError('');
+      alert('Existing user updated successfully');
+      navigate('/users');
+    }
+    setShowDialog(false);
+  };
+
+  const handleDialogCancel = () => {
+    setShowDialog(false);
   };
 
   return (
@@ -160,9 +171,15 @@ const EditForm = () => {
           </div>
         </form>
       </div>
+      {showDialog && (
+        <ConfirmationDialog
+          message="Are you sure you want to update these settings?"
+          onConfirm={handleDialogConfirm}
+          onCancel={handleDialogCancel}
+        />
+      )}
     </section>
   );
 };
 
 export default EditForm;
-
