@@ -1,25 +1,33 @@
-// src/TestComponent.js
-import React from 'react';
-import { useAuth } from './contexts/AuthContext';
+import React, { useEffect, useState } from 'react';
 
-const TestComponent = () => {
-  const { logIn, logOut, isLoggedIn } = useAuth();
+function TestComponent() {
+  const [userDatabase, setUserDatabase] = useState([]);
 
-  const handleLogin = () => {
-    logIn('test@example.com', 'password123');
-  };
-
-  const handleLogout = () => {
-    logOut();
-  };
+  useEffect(() => {
+    // Fetch the userDatabase from localStorage
+    const data = localStorage.getItem('userDatabase');
+    if (data) {
+      setUserDatabase(JSON.parse(data));
+    }
+  }, []);
 
   return (
-    <div>
-      <button onClick={handleLogin}>Log In</button>
-      <button onClick={handleLogout}>Log Out</button>
-      <p>Logged In: {isLoggedIn ? 'Yes' : 'No'}</p>
+    <div className="test-component container overflow-auto max-w-sm max-h-sm">
+      <h1>User Database</h1>
+      {userDatabase.length === 0 ? (
+        <p>No user data available.</p>
+      ) : (
+        <ul>
+          {userDatabase.map((user) => (
+            <li key={user.id}>
+              <strong>Name:</strong> {user.name} <br />
+              <strong>Email:</strong> {user.email}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
-};
+}
 
 export default TestComponent;

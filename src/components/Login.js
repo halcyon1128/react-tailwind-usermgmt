@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useUserContext } from './contexts/UserContext';
 import { useArrayDatabase } from './contexts/ArrayDatabase'; // Import the custom hook
+import TestComponent from './TestComponent';
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -126,7 +127,9 @@ function Login() {
             </button>
           </form>
         </section>
+        <TestComponent />
       </div>
+
     </div>
   );
 }
