@@ -1,101 +1,90 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from './contexts/AuthContext'
-import { useAdminContext } from './contexts/AdminContext'
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
+import { useUserContext } from './contexts/UserContext';
+import { useArrayDatabase } from './contexts/ArrayDatabase'; // Import the custom hook
 
 function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const { logIn, authenticateAdmin } = useAuth() // Get functions and databases from context
-  const { adminDatabase } = useAdminContext()
-  const navigate = useNavigate()
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const { logIn, authenticateUser } = useAuth(); // Use the updated context functions
+  const { userDatabase } = useUserContext(); // Access userDatabase from UserContext
+  const { setCurrentUser } = useArrayDatabase(); // Access the function from ArrayDatabase
+  const navigate = useNavigate();
 
-  // Fetch adminDatabase from local storage and log it
+
+  // Fetch userDatabase from local storage and log it (for debug purposes)
   useEffect(() => {
-    const storedAdminDatabase = localStorage.getItem('adminDatabase')
-    if (storedAdminDatabase) {
-      const adminDatabase = JSON.parse(storedAdminDatabase)
-      console.log('Admin Database from Local Storage:', adminDatabase)
+    const storedUserDatabase = localStorage.getItem('userDatabase');
+    console.log('isLoggedIn status: ', localStorage.getItem('isLoggedIn'));
+    if (storedUserDatabase) {
+      const userDatabase = JSON.parse(storedUserDatabase);
+      console.log('User Database from Local Storage:', userDatabase);
     } else {
-      console.log('No admin database found in local storage.')
+      console.log('No user database found in local storage.');
     }
-  }, [])
+  }, []);
 
   // Regex for validating email format
-  const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleInputChange = (event) => {
-    const { name, value } = event.target
-    if (name === 'email') setEmail(value)
-    if (name === 'password') setPassword(value)
-  }
+    const { name, value } = event.target;
+    if (name === 'email') setEmail(value);
+    if (name === 'password') setPassword(value);
+  };
 
   const handleInputFocus = () => {
-    setError('') // Clear the error message when input is focused
-  }
-
-
-
-  //PRINTS ADMIN IN CONSOLE: REMOVE ON DEPLOYMENT
-  // Log admin database once upon component mount
-  useEffect(() => {
-    console.log(`Admin database: ${JSON.stringify(adminDatabase)}`, 'for debug purposes only; removed upon deployment');
-  }, [adminDatabase]); // Dependency ensures the effect runs when adminDatabase changes
-
-  // Inside handleSubmit
-  console.log('Email:', email)
-  console.log('Password:', password)
-  console.log('Admin Database:', adminDatabase)
-  console.log('Is Admin:', authenticateAdmin(email, password))
+    setError(''); // Clear the error message when input is focused
+  };
 
   const handleSubmit = (event) => {
-    event.preventDefault()
+    event.preventDefault();
 
     // Define validation scenarios
     const validationErrors = {
       emailRequired: !email,
       passwordRequired: !password,
       invalidEmailFormat: !emailFormatRegex.test(email),
-      emailNotExists: !adminDatabase.some((admin) => admin.email === email),
-      invalidPassword: adminDatabase.some(
-        (admin) => admin.email === email && admin.password !== password
+      emailNotExists: !userDatabase.some((user) => user.email === email),
+      invalidPassword: userDatabase.some(
+        (user) => user.email === email && user.password !== password
       ),
-    }
+    };
 
     // Determine which error to set based on validation results
     switch (true) {
       case validationErrors.emailRequired:
-        setError('Email is required')
-        break
+        setError('Email is required');
+        break;
       case validationErrors.passwordRequired:
-        setError('Password is required')
-        break
+        setError('Password is required');
+        break;
       case validationErrors.invalidEmailFormat:
-        setError('Email format is invalid')
-        break
+        setError('Email format is invalid');
+        break;
       case validationErrors.emailNotExists:
-        setError('Email does not exist')
-        break
+        setError('Email does not exist');
+        break;
       case validationErrors.invalidPassword:
-        setError('Invalid password')
-        break
+        setError('Invalid password');
+        break;
       default:
-        // Use the authenticateAdmin function to check if credentials are valid
-        const isAdmin = authenticateAdmin(email, password)
-        if (isAdmin) {
-          logIn(email) // Set the current user
-          setError('') // Clear error message on successful login
-          console.log(``)
-          navigate('/users')
+        // Use the authenticateUser function to check if credentials are valid
+        const isUser = authenticateUser(email, password); // Assuming authenticateUser is for user authentication
+        if (isUser) {
+          // Set the current user in local storage
+          setCurrentUser({ email });
+          logIn(email); // Set the current user
+          setError(''); // Clear error message on successful login
+          navigate('/users');
         } else {
-          setError('An unexpected error occurred')
+          setError('An unexpected error occurred');
         }
-        break
+        break;
     }
-
-
-  }
+  };
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-zinc-800 pb-32 text-zinc-800">
@@ -113,7 +102,7 @@ function Login() {
                 value={email}
                 placeholder="Email"
                 onChange={handleInputChange}
-                onFocus={handleInputFocus} // Add focus handler
+                onFocus={handleInputFocus}
                 className="w-full rounded border border-gray-300 p-2 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -125,26 +114,21 @@ function Login() {
                 value={password}
                 placeholder="Password"
                 onChange={handleInputChange}
-                onFocus={handleInputFocus} // Add focus handler
+                onFocus={handleInputFocus}
                 className="w-full rounded border border-gray-300 p-2 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
             {error && <p className="text-xs text-red-500">{error}</p>}
             <button
               type="submit"
-              className="w-full rounded bg-blue-500 p-2 font-semibold text-white hover:bg-blue-600"
-            >
+              className="w-full rounded bg-blue-500 p-2 font-semibold text-white hover:bg-blue-600">
               Login
             </button>
-
-            {/* <p className='text-xs text-red-500 text-center font-semibold'> if ArrayDatabase test div does not show up it did not load</p> */}
           </form>
         </section>
       </div>
     </div>
-  )
+  );
 }
 
-export default Login
-
-//userDatabase
+export default Login;

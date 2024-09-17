@@ -1,26 +1,40 @@
 import React from 'react';
 import EditForm from './EditForm';
-import { Link } from 'react-router-dom';
-import AdminName from './AdminName';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
+import UserProfile from './UserProfile';
+import { useArrayDatabase } from './contexts/ArrayDatabase'; // Import the custom hook
 
 function Edit() {
+    const { logOut } = useAuth();
+    const { clearCurrentUser } = useArrayDatabase(); // Use the custom hook to access clearCurrentUser
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        clearCurrentUser(); // Clear currentUser array from localStorage
+        logOut();
+        console.log('isLoggedIn status: ', localStorage.getItem('isLoggedIn'));
+        navigate('/login');
+    };
+
     return (
-        <div className='bg-zinc-800 flex items-center justify-center py-0 sm:py-4 lg:px-20 xl:px-40 text-zinc-800'>
-            <div className='bg-zinc-50 flex flex-col h-screen w-screen text-xs sm:text-md rounded-md'>
-                {/* Header */}
-                <section className='flex flex-row justify-between items-start font-semibold w-full h-20 sm:h-18 p-5 mb-8'>
-                    <h2 className='font-black text-lg sm:text-2xl w-1/6 sm:w-auto'>User Management</h2>
+        <div className="flex items-center justify-center bg-zinc-800 py-0 text-zinc-800 sm:py-4 lg:px-20 xl:px-40">
+            <div className="sm:text-md flex h-screen w-screen flex-col rounded-md bg-zinc-50 text-xs">
+                <header className="sm:h-18 mb-8 flex h-20 w-full flex-row items-start justify-between p-5 font-semibold">
+                    <h2 className="w-1/6 text-lg font-black sm:w-auto sm:text-2xl">
+                        User Management
+                    </h2>
                     <div className="flex flex-row items-center justify-between gap-2 sm:text-sm">
-                        <AdminName /> {/* Display admin name */}
-                        <button className="text-blue-500 hover:text-blue-300 font-bold mr-1">
-                            <a href="/login">Logout</a>
+                        <UserProfile /> {/* Dynamic user profile display */}
+                        <button
+                            onClick={handleLogout}
+                            className="mr-1 font-bold text-blue-500 hover:text-blue-300">
+                            Logout
                         </button>
                     </div>
-                </section>
-                {/* Body */}
-                <div id="body" className='flex flex-col sm:flex-grow sm:flex-row text-sm sm:text-lg sm:mt-2'>
-                    {/* Navigation */}
-                    <nav className="sm:place-items-start sm:rounded-xl bg-white shadow-sm sm:shadow-lg flex flex-row sm:flex-col w-full h-auto sm:h-screen sm:w-auto items-start justify-end sm:justify-start p-2 gap-4 sm:p-5 text-sm sm:text-md font-light">
+                </header>
+                <div className="flex flex-grow flex-col text-sm sm:flex-row sm:pr-5 sm:text-lg">
+                    <nav className="sm:h-1/8 sm:text-md flex h-auto w-full flex-row items-start justify-end gap-4 rounded-sm bg-white p-2 text-sm font-light shadow-sm sm:w-auto sm:flex-col sm:justify-start sm:rounded-xl sm:p-5 sm:shadow-lg">
                         <button>
                             <Link to="/users">Users</Link>
                         </button>
@@ -28,12 +42,16 @@ function Edit() {
                             <Link to="/settings">Settings</Link>
                         </button>
                     </nav>
-                    {/* Content */}
-                    <div id="content" className="pt-6 gap-2 sm:flex-grow sm:gap-0 sm:rounded sm:pt-8 sm:mx-5">
-                        <div className="flex sm:justify-center flex-grow justify-center">
-                            <EditForm />
+                    <main className="w-full flex-grow pt-6 sm:w-5/6 sm:pl-5">
+                        <div className="flex flex-row justify-between sm:mb-0 sm:ml-2 sm:items-end mt-2">
+                            <h1 className="ml-5 text-lg font-bold tracking-wide text-zinc-500 sm:mb-2 sm:ml-0 sm:text-xl">
+                                Edit
+                            </h1>
                         </div>
-                    </div>
+                        <section className="rounded bg-white p-4 shadow-md">
+                            <EditForm />
+                        </section>
+                    </main>
                 </div>
             </div>
         </div>
@@ -41,3 +59,5 @@ function Edit() {
 }
 
 export default Edit;
+
+//EditForm

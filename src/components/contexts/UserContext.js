@@ -14,20 +14,22 @@ export const UserProvider = ({ children }) => {
 
   const addUser = (newUser) => {
     setUserDatabase((prevUsers) => [...prevUsers, newUser]);
+    console.log('User Database from Local Storage:', userDatabase);
   };
 
   const modifyUser = (id, updatedUser) => {
     setUserDatabase((prevUsers) =>
       prevUsers.map((user) =>
-        user.id === id ? { ...user, ...updatedUser } : user
-      )
+        user.id === id ? { ...user, ...updatedUser } : user)
     );
+    console.log('User Database from Local Storage:', userDatabase);
   };
 
   const deleteUser = (id) => {
     setUserDatabase((prevUsers) =>
       prevUsers.filter((user) => user.id !== id)
     );
+    console.log('User Database from Local Storage:', userDatabase);
   };
 
   return (

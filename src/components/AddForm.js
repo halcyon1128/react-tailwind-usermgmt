@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useUserContext } from './contexts/UserContext';
-import { useAuth } from './contexts/AuthContext';
+
 
 const AddForm = () => {
-  const { addUser, userDatabase } = useUserContext();
-  const { authenticatePassword } = useAuth();
-
+  const { addUser, userDatabase } = useUserContext(); // Assuming addUser and userDatabase are available in UserContext
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
-
   const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleInputChange = (event) => {
@@ -20,61 +18,69 @@ const AddForm = () => {
     if (name === 'name') setName(value);
     if (name === 'email') setEmail(value);
     if (name === 'password') setPassword(value);
+    if (name === 'confirmPassword') setConfirmPassword(value);
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    setError(''); // Clear previous error
+    setError('');
 
-    // Define validation scenarios
+    // Check for existing names and emails
+    const nameExists = userDatabase.some(user => user.name === name);
+    const emailExists = userDatabase.some(user => user.email === email);
+
     const validationErrors = {
       nameRequired: !name,
       emailRequired: !email,
       invalidEmailFormat: !emailFormatRegex.test(email),
-      emailExists: userDatabase.some(user => user.email === email),
-      nameExists: userDatabase.some(user => user.name === name),
       passwordRequired: !password,
-      incorrectPassword: authenticatePassword(password) === false,
+      confirmPasswordRequired: !confirmPassword,
+      confirmPasswordMismatch: confirmPassword !== password,
+      nameTaken: nameExists,
+      emailTaken: emailExists,
     };
 
     switch (true) {
       case validationErrors.nameRequired:
-        setError('Name must not be empty');
-        break;
-      case validationErrors.nameExists:
-        setError('Name already exists');
+        setError('Name cannot be empty!');
         break;
       case validationErrors.emailRequired:
-        setError('Email must not be empty');
+        setError('Email must not be empty!');
         break;
       case validationErrors.invalidEmailFormat:
-        setError('Email must be valid');
-        break;
-      case validationErrors.emailExists:
-        setError('Email already exists');
+        setError('Email format is invalid');
         break;
       case validationErrors.passwordRequired:
-        setError('Admin password is required');
+        setError('Password is required');
         break;
-      case validationErrors.incorrectPassword:
-        setError('Incorrect admin password');
+      case validationErrors.confirmPasswordRequired:
+        setError('Confirm password is required');
+        break;
+      case validationErrors.confirmPasswordMismatch:
+        setError('Confirm password does not match password');
+        break;
+      case validationErrors.nameTaken:
+        setError('Name is already taken');
+        break;
+      case validationErrors.emailTaken:
+        setError('Email is already taken');
         break;
       default:
         const newUser = {
-          id: Date.now(), // Use current timestamp as a unique ID
+          id: Date.now(), // Generate a unique ID
           name,
           email,
-          password,
+          password
         };
-
         addUser(newUser);
-        console.log('New user added:', newUser);
-
-        // Reset form fields and error
+        console.log('User added:', newUser);
+        console.log('User Database from Local Storage:', userDatabase);
         setName('');
         setEmail('');
         setPassword('');
+        setConfirmPassword('');
         setError('');
+        alert('New user added successfully!');
         navigate('/users');
         break;
     }
@@ -118,13 +124,23 @@ const AddForm = () => {
               className="w-full rounded border border-gray-300 p-2 text-slate-500 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+          <div>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={confirmPassword}
+              placeholder="Confirm Password"
+              onChange={handleInputChange}
+              className="w-full rounded border border-gray-300 p-2 text-slate-500 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
           {error && <p className="text-xs text-red-500">{error}</p>}
           <div className='flex flex-row gap-4 '>
             <button
               type="submit"
               className="w-full rounded bg-blue-500 p-2 font-semibold text-white hover:bg-blue-600"
             >
-              Add
+              Add User
             </button>
             <button className="w-full rounded bg-red-500 p-2 font-semibold text-white hover:bg-red-600">
               <Link to="/users" className="w-full h-full block">

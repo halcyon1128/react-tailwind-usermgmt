@@ -1,53 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAdminContext } from './contexts/AdminContext';
-import { useAuth } from './contexts/AuthContext';
+import { useUserContext } from './contexts/UserContext';
+import { useArrayDatabase } from './contexts/ArrayDatabase';
 
 const SettingsForm = () => {
-  const { id } = { id: 1 }
-  const { adminDatabase, modifyAdmin } = useAdminContext(); //init adminDatabase container variable
+  const [loggedUser, setLoggedUser] = useState(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const { authenticatePassword } = useAuth();
   const navigate = useNavigate();
-  const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-  // Log admin database once upon component mount (for debug purposes)
-  useEffect(() => {
-    console.log(`Admin database: ${JSON.stringify(adminDatabase)}`, 'for debug purposes only; removed upon deployment');
-  }, [adminDatabase]);
-
+  const { modifyUser } = useUserContext();
+  const { setCurrentUser } = useArrayDatabase();
+  const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 
   useEffect(() => {
-    const admin = adminDatabase.find((admin) => admin.id === parseInt(id));
-    if (admin) {
-      setName(admin.name);
-      setEmail(admin.email);
+    const storedUser = JSON.parse(localStorage.getItem('currentUser'));
+    if (storedUser) {
+      setLoggedUser(storedUser);
+      setName(storedUser.name);
+      setEmail(storedUser.email);
+    } else {
+      setError('No current user found');
     }
-  }, [id, adminDatabase]);
+  }, []);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     if (name === 'name') setName(value);
     if (name === 'email') setEmail(value);
-    if (name === 'password') setPassword(value);
+    if (name === 'currentPassword') setCurrentPassword(value);
+    if (name === 'newPassword') setNewPassword(value);
+    if (name === 'confirmPassword') setConfirmPassword(value);
   };
-
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    setError(''); // Clear previous error
+    setError('');
 
-    // Define validation scenarios
+    if (!loggedUser) {
+      setError('No current user found');
+      return;
+    }
+
+    // Get the userDatabase from localStorage
+    const userDatabase = JSON.parse(localStorage.getItem('userDatabase')) || [];
+
+    // Check for existing names and emails
+    const nameExists = userDatabase.some(user => user.name === name && user.id !== loggedUser.id);
+    const emailExists = userDatabase.some(user => user.email === email && user.id !== loggedUser.id);
+
     const validationErrors = {
       nameRequired: !name,
       emailRequired: !email,
       invalidEmailFormat: !emailFormatRegex.test(email),
-      passwordRequired: !password,
-      incorrectPassword: authenticatePassword(password) === false
+      currentPasswordRequired: !currentPassword,
+      newPasswordRequired: !newPassword,
+      confirmPasswordRequired: !confirmPassword,
+      newPasswordSameAsCurrent: newPassword === currentPassword,
+      confirmPasswordMismatch: confirmPassword !== newPassword,
+      nameTaken: nameExists,
+      emailTaken: emailExists,
     };
 
     switch (true) {
@@ -58,37 +74,56 @@ const SettingsForm = () => {
         setError('Email must not be empty!');
         break;
       case validationErrors.invalidEmailFormat:
-        setError('Email format is invalid')
-        break
-      case validationErrors.passwordRequired:
-        setError('Update changes requires password');
-        break
-      case validationErrors.incorrectPassword: //SettingsForm.js:48
-        setError('Password is incorrect');
+        setError('Email format is invalid');
+        break;
+      case validationErrors.currentPasswordRequired:
+        setError('Current password is required');
+        break;
+      case validationErrors.newPasswordRequired:
+        setError('New password is required');
+        break;
+      case validationErrors.confirmPasswordRequired:
+        setError('Confirm password is required');
+        break;
+      case validationErrors.newPasswordSameAsCurrent:
+        setError('New password cannot be the same as current password');
+        break;
+      case validationErrors.confirmPasswordMismatch:
+        setError('Confirm password does not match new password');
+        break;
+      case validationErrors.nameTaken:
+        setError('Name is already taken');
+        break;
+      case validationErrors.emailTaken:
+        setError('Email is already taken');
         break;
       default:
-        const updatedAdmin = {
-          id: parseInt(id), // Assuming you are updating the admin with id 1
+        const updatedUser = {
+          id: loggedUser.id,
           name,
           email,
+          password: newPassword // Update the password field
         };
-        modifyAdmin(parseInt(id), updatedAdmin);
-        console.log('Admin updated:', updatedAdmin);
+        modifyUser(loggedUser.id, updatedUser);
+        setCurrentUser(updatedUser);
+        console.log('User updated:', updatedUser);
+        console.log('Logged user:', JSON.stringify('currentUser'));
+        console.log('User Database from Local Storage:', userDatabase);
         setName('');
         setEmail('');
-        setPassword('');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
         setError('');
-        navigate('/users'); // redirect to /users after update
-        console.log('Updated admin:', updatedAdmin)
-        console.log('Current admin database:', adminDatabase)
+        alert('Your user settings were successfully updated!');
+        navigate('/users');
         break;
     }
   };
 
   return (
     <section className='flex-grow sm:flex sm:flex-col sm:grow-0 sm:w-5/6'>
-      <h1 className="pl-5 sm:text-left sm:p-0 text-lg sm:text-xl tracking-wide font-bold text-zinc-500 sm:mb-2 sm:ml-0">Settings</h1>
-      <div className="flex sm:flex-grow justify-center rounded-md bg-white shadow-md">
+      <div className="flex sm:flex-grow justify-center">
         <form
           className="flex max-w-xs flex-grow flex-col gap-4 py-10 text-sm sm:max-w-5/6 sm:px-10 sm:text-base"
           onSubmit={handleSubmit}
@@ -116,9 +151,29 @@ const SettingsForm = () => {
           <div>
             <input
               type="password"
-              name="password"
-              value={password}
-              placeholder="Admin Password"
+              name="currentPassword"
+              value={currentPassword}
+              placeholder="Current Password"
+              onChange={handleInputChange}
+              className="w-full rounded border border-gray-300 p-2 text-slate-500 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <input
+              type="password"
+              name="newPassword"
+              value={newPassword}
+              placeholder="New Password"
+              onChange={handleInputChange}
+              className="w-full rounded border border-gray-300 p-2 text-slate-500 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <input
+              type="password"
+              name="confirmPassword"
+              value={confirmPassword}
+              placeholder="Confirm Password"
               onChange={handleInputChange}
               className="w-full rounded border border-gray-300 p-2 text-slate-500 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -132,7 +187,7 @@ const SettingsForm = () => {
               Save
             </button>
             <button className="w-full rounded bg-red-500 p-2 font-semibold text-white hover:bg-red-600">
-              <Link to="/admins" className="w-full h-full block">
+              <Link to="/users" className="w-full h-full block">
                 Cancel
               </Link>
             </button>
@@ -144,3 +199,4 @@ const SettingsForm = () => {
 };
 
 export default SettingsForm;
+
