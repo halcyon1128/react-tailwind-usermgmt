@@ -21,7 +21,8 @@ function TestComponent() {
           {userDatabase.map((user) => (
             <li key={user.id}>
               <strong>Name:</strong> {user.name} <br />
-              <strong>Email:</strong> {user.email}
+              <strong>Email:</strong> {user.email} <br />
+              <strong>Password:</strong> {user.password}
             </li>
           ))}
         </ul>
