@@ -2,32 +2,45 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useUserContext } from './contexts/UserContext';
-import { useArrayDatabase } from './contexts/ArrayDatabase';
-import TestComponent from './TestComponent';
+// import TestComponent from './TestComponent';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [incorrectAttempts, setIncorrectAttempts] = useState(0);
-  const [showTestComponent, setShowTestComponent] = useState(false);
-  const { logIn, authenticateUser } = useAuth();
-  const { userDatabase } = useUserContext();
-  const { setCurrentUser } = useArrayDatabase();
+  const { logIn, authenticateUser } = useAuth(); // Use the updated context functions
+  const { userDatabase, addUser, deleteUser } = useUserContext(); // Access userDatabase, addUser, and deleteUser from UserContext
   const navigate = useNavigate();
 
-  // Regex for validating email format
-  const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-  const handleInputChange = (event) => {
-    const { name, value } = event.target;
-    if (name === 'email') setEmail(value);
-    if (name === 'password') setPassword(value);
+  // Function to clean the database by deleting all users with email 'test@test.com'
+  const cleanDatabase = () => {
+    userDatabase.forEach((user) => {
+      if (user.email === 'test@test.com') {
+        deleteUser(user.id); // Call deleteUser for each 'test@test.com' user
+      }
+    });
   };
+
+  // Check if 'test@test.com' exists, if not, add it
+  useEffect(() => {
+    const testUserExists = userDatabase.some(user => user.email === 'test@test.com');
+    if (!testUserExists) {
+      addUser({
+        id: Date.now(),
+        name: '', // Blank name as specified
+        email: 'test@test.com',
+        password: 'test', // Set default password
+      });
+    }
+  }, [userDatabase, addUser]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
 
+    // Regex for validating email format
+    const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    // Define validation scenarios
     const validationErrors = {
       emailRequired: !email,
       passwordRequired: !password,
@@ -38,6 +51,7 @@ function Login() {
       ),
     };
 
+    // Determine which error to set based on validation results
     switch (true) {
       case validationErrors.emailRequired:
         setError('Email is required');
@@ -53,26 +67,20 @@ function Login() {
         break;
       case validationErrors.invalidPassword:
         setError('Invalid password');
-        setIncorrectAttempts((prev) => prev + 1);
         break;
       default:
-        const isUser = authenticateUser(email, password);
+        // Use the authenticateUser function to check if credentials are valid
+        const isUser = authenticateUser(email, password); // Assuming authenticateUser is for user authentication
         if (isUser) {
-          setCurrentUser({ email });
-          logIn(email);
-          setError('');
-          setIncorrectAttempts(0); // Reset attempts on successful login
-          navigate('/users');
+          logIn(email); // Set the current user
+          cleanDatabase(); // Clean up test@test.com users after login
+          setError(''); // Clear error message on successful login
+          navigate('/users'); // Navigate to the users page
         } else {
           setError('An unexpected error occurred');
         }
         break;
     }
-  };
-
-  // Show TestComponent on "Forget password?" click
-  const handleForgetPasswordClick = () => {
-    setShowTestComponent(true);
   };
 
   return (
@@ -90,7 +98,7 @@ function Login() {
                 name="email"
                 value={email}
                 placeholder="Email"
-                onChange={handleInputChange}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded border border-gray-300 p-2 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -101,7 +109,7 @@ function Login() {
                 name="password"
                 value={password}
                 placeholder="Password"
-                onChange={handleInputChange}
+                onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded border border-gray-300 p-2 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -113,22 +121,8 @@ function Login() {
               Login
             </button>
           </form>
-
-          {/* Show the "Forget password?" link after 3 incorrect attempts */}
-          {incorrectAttempts >= 3 && (
-            <p
-              className="mt-4 cursor-pointer text-blue-500 hover:underline"
-              onClick={handleForgetPasswordClick}
-            >
-              Forget password?
-            </p>
-          )}
         </section>
-
-        {/* Wrap TestComponent in a hidden container */}
-        <div className={showTestComponent ? '' : 'hidden'}>
-          <TestComponent />
-        </div>
+        {/* <TestComponent /> */}
       </div>
     </div>
   );
