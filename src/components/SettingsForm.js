@@ -60,6 +60,7 @@ const SettingsForm = () => {
       emailRequired: !email,
       invalidEmailFormat: !emailFormatRegex.test(email),
       currentPasswordRequired: !currentPassword,
+      currentPasswordIsValid: currentPassword !== loggedUser.password,
       newPasswordRequired: !newPassword,
       confirmPasswordRequired: !confirmPassword,
       confirmPasswordMismatch: confirmPassword !== newPassword,
@@ -79,6 +80,9 @@ const SettingsForm = () => {
         break;
       case validationErrors.currentPasswordRequired:
         setError('Current password is required');
+        break;
+      case validationErrors.currentPasswordIsValid:
+        setError('Must input your current password');
         break;
       case validationErrors.newPasswordRequired:
         setError('New password is required');
