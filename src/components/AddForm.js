@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUserContext } from './contexts/UserContext';
 
-
 const AddForm = () => {
-  const { addUser, userDatabase } = useUserContext(); // Assuming addUser and userDatabase are available in UserContext
+  const { addUser, userDatabase } = useUserContext(); // Use addUser method from context
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const navigate = useNavigate();
   const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleInputChange = (event) => {
@@ -21,7 +20,7 @@ const AddForm = () => {
     if (name === 'confirmPassword') setConfirmPassword(value);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
 
@@ -67,21 +66,26 @@ const AddForm = () => {
         break;
       default:
         const newUser = {
-          id: Date.now(), // Generate a unique ID
           name,
           email,
           password
         };
-        addUser(newUser);
-        console.log('User added:', newUser);
-        console.log('User Database from Local Storage:', userDatabase);
+
+        // Add user using the context's addUser method
+        try {
+          await addUser(newUser); // Call the addUser method from context
+          alert('New user added successfully!');
+          navigate('/users'); // Navigate to users page on success
+        } catch (error) {
+          setError('Error adding user: ' + error.message);
+        }
+
+        // Reset form fields
         setName('');
         setEmail('');
         setPassword('');
         setConfirmPassword('');
         setError('');
-        alert('New user added successfully!');
-        navigate('/users');
         break;
     }
   };

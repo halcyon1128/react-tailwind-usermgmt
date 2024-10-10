@@ -1,86 +1,58 @@
-import React, { createContext, useContext, useEffect } from 'react';
+// import React, { createContext, useContext, useState } from 'react';
 
-// Create the context
-const ArrayDatabaseContext = createContext();
+// const ArrayDatabaseContext = createContext();
 
-// Create the provider component
-const ArrayDatabase = ({ children }) => {
-  useEffect(() => {
-    console.log('ArrayDatabase component is mounted - checking userDatabase');
+// const ArrayDatabase = ({ children }) => {
+//   const [currentUserVerified, setCurrentUserVerified] = useState(false);
 
-    const initializeDatabase = () => {
-      // Initialize userDatabase if it doesn't exist
-      const storedUsers = localStorage.getItem('userDatabase');
-      if (!storedUsers) {
-        console.log('userDatabase not found');
-        localStorage.setItem('userDatabase', JSON.stringify([]));
-      } else {
-        const parsedUsers = JSON.parse(storedUsers);
-        if (parsedUsers.length === 0) {
-          console.log('userDatabase is empty, setting default values');
-          const defaultUsers = [
-            {
-              id: 1,
-              name: 'John Doe',
-              email: 'john@doe.com',
-              password: 'qwerty',
-            },
-            {
-              id: 2,
-              name: 'Jane Doe',
-              email: 'jane@doe.com',
-              password: 'asdfgh',
-            },
-          ];
-          localStorage.setItem('userDatabase', JSON.stringify(defaultUsers));
-          console.log('Initialized userDatabase with default values');
-        } else {
-          console.log('userDatabase already exists:', parsedUsers);
-        }
-      }
+//   // Set current user (on login)
+//   const setCurrentUser = async (user) => {
+//     try {
+//       const response = await fetch('http://localhost:6060/login', {
+//         method: 'POST',
+//         headers: {
+//           'Content-Type': 'application/json',
+//         },
+//         body: JSON.stringify(user),
+//       });
+//       const currentUser = await response.json();
+//       if (currentUser && currentUser.isLoggedIn) {
+//         setCurrentUserVerified(true);
+//         console.log('currentUser set:', currentUser);
+//       }
+//     } catch (error) {
+//       console.error('Error setting current user:', error);
+//     }
+//   };
 
-      // Initialize currentUser if it doesn't exist
-      const storedCurrentUser = localStorage.getItem('currentUser');
-      if (!storedCurrentUser) {
-        console.log('currentUser not found, initializing with empty object');
-        localStorage.setItem('currentUser', JSON.stringify({}));
-      } else {
-        console.log('currentUser already exists:', JSON.parse(storedCurrentUser));
-      }
-    };
+//   // Clear current user (on logout)
+//   const clearCurrentUser = async () => {
+//     try {
+//       const response = await fetch('http://localhost:6060/logout', {
+//         method: 'POST',
+//       });
+//       if (response.ok) {
+//         setCurrentUserVerified(false);
+//         console.log('currentUser cleared');
+//       }
+//     } catch (error) {
+//       console.error('Error clearing current user:', error);
+//     }
+//   };
 
-    initializeDatabase(); // Call the initialization function
-  }, []); // <-- This runs on mount
+//   return (
+//     <ArrayDatabaseContext.Provider value={{ currentUserVerified, setCurrentUser, clearCurrentUser }}>
+//       {children}
+//     </ArrayDatabaseContext.Provider>
+//   );
+// };
 
-  const setCurrentUser = (user) => {
-    // Sync currentUser state with localStorage
-    localStorage.setItem('currentUser', JSON.stringify(user));
-    console.log('currentUser set:', user);
-  };
+// export const useArrayDatabase = () => {
+//   const context = useContext(ArrayDatabaseContext);
+//   if (!context) {
+//     throw new Error('useArrayDatabase must be used within an ArrayDatabase');
+//   }
+//   return context;
+// };
 
-  const clearCurrentUser = () => {
-    // Remove currentUser from localStorage
-    localStorage.removeItem('currentUser');
-    console.log('currentUser cleared');
-  };
-
-  return (
-    <ArrayDatabaseContext.Provider value={{ setCurrentUser, clearCurrentUser }}>
-      {children}
-    </ArrayDatabaseContext.Provider>
-  );
-};
-
-// Create a custom hook to use the context
-export const useArrayDatabase = () => {
-  const context = useContext(ArrayDatabaseContext);
-  if (context === undefined) {
-    throw new Error('useArrayDatabase must be used within an ArrayDatabase');
-  }
-  return context;
-};
-
-export default ArrayDatabase;
-
-
-//currentUser
+// export default ArrayDatabase;

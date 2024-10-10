@@ -1,121 +1,118 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useUserContext } from './contexts/UserContext';
-import { useArrayDatabase } from './contexts/ArrayDatabase';
-import ConfirmationDialog from './ConfirmationDialog';
 
 const EditForm = () => {
   const { id } = useParams(); // Get the user ID from the URL
-  const { userDatabase, modifyUser } = useUserContext();
+  const { modifyUser, userDatabase } = useUserContext(); // Use modifyUser and userDatabase from context
+  const navigate = useNavigate();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [showDialog, setShowDialog] = useState(false);
-  const [submitData, setSubmitData] = useState(null);
-  const { setCurrentUser } = useArrayDatabase();
-  const navigate = useNavigate();
+
   const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   useEffect(() => {
-    const user = userDatabase.find((user) => user.id === parseInt(id));
-    if (user) {
-      setName(user.name);
-      setEmail(user.email);
-      setCurrentPassword(user.password); // Fetch the current password
-    }
-  }, [id, userDatabase]);
+    // Fetch user details by ID (initial load)
+    const fetchUserDetails = async () => {
+      try {
+        const response = await fetch(`http://localhost:6060/users/${id}`);
+        if (!response.ok) {
+          throw new Error('User not found');
+        }
+        const userData = await response.json();
+        setName(userData.name);
+        setEmail(userData.email);
+      } catch (error) {
+        setError('Error fetching user data: ' + error.message);
+      }
+    };
+
+    fetchUserDetails();
+  }, [id]);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
     if (name === 'name') setName(value);
     if (name === 'email') setEmail(value);
-    if (name === 'newPassword') setNewPassword(value);
+    if (name === 'password') setPassword(value);
     if (name === 'confirmPassword') setConfirmPassword(value);
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    setError(''); // Clear previous error
+    setError('');
 
-    // Define validation scenarios
+    // Check for existing names and emails
+    const nameExists = userDatabase.some(user => user.name === name && user.id !== id);
+    const emailExists = userDatabase.some(user => user.email === email && user.id !== id);
+
     const validationErrors = {
       nameRequired: !name,
       emailRequired: !email,
-      newPasswordRequired: !newPassword,
       invalidEmailFormat: !emailFormatRegex.test(email),
-      emailExists: userDatabase.some((user) => user.email === email && user.id !== parseInt(id)),
-      nameExists: userDatabase.some((user) => user.name === name && user.id !== parseInt(id)),
-      passwordsDoNotMatch: newPassword !== confirmPassword,
+      passwordRequired: !password,
+      confirmPasswordRequired: !confirmPassword,
+      confirmPasswordMismatch: confirmPassword !== password,
+      nameTaken: nameExists,
+      emailTaken: emailExists,
     };
 
     switch (true) {
       case validationErrors.nameRequired:
-        setError('Name is required');
-        break;
-      case validationErrors.nameExists:
-        setError('Name already exists');
+        setError('Name cannot be empty!');
         break;
       case validationErrors.emailRequired:
-        setError('Email is required');
+        setError('Email must not be empty!');
         break;
       case validationErrors.invalidEmailFormat:
         setError('Email format is invalid');
         break;
-      case validationErrors.emailExists:
-        setError('Email already exists');
+      case validationErrors.passwordRequired:
+        setError('Password is required');
         break;
-      case validationErrors.newPasswordRequired:
-        setError('New password is required');
+      case validationErrors.confirmPasswordRequired:
+        setError('Confirm password is required');
         break;
-      case validationErrors.passwordsDoNotMatch:
-        setError('New password and confirm password do not match');
+      case validationErrors.confirmPasswordMismatch:
+        setError('Confirm password does not match password');
+        break;
+      case validationErrors.nameTaken:
+        setError('Name is already taken');
+        break;
+      case validationErrors.emailTaken:
+        setError('Email is already taken');
         break;
       default:
-        if (newPassword === currentPassword) {
-          // Alert if new password is the same as the current password
-          alert('New password is the same as current password!');
-        }
-        setSubmitData({
-          id: parseInt(id),
+        const updatedUser = {
           name,
           email,
-          password: newPassword,
-        });
-        setShowDialog(true);
+          password,
+        };
+
+        // Use the modifyUser function from UserContext
+        try {
+          await modifyUser(id, updatedUser);
+          alert('User updated successfully!');
+          navigate('/users'); // Navigate to users page on success
+        } catch (error) {
+          setError('Error updating user: ' + error.message);
+        }
         break;
     }
-  };
-
-  const handleDialogConfirm = () => {
-    if (submitData) {
-      modifyUser(submitData.id, submitData);
-      setCurrentUser(submitData);
-      console.log('User updated:', submitData);
-      console.log('User Database from Local Storage:', userDatabase);
-      setName('');
-      setEmail('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setError('');
-      alert('Existing user updated successfully');
-      navigate('/users');
-    }
-    setShowDialog(false);
-  };
-
-  const handleDialogCancel = () => {
-    setShowDialog(false);
   };
 
   return (
     <section className='flex-grow sm:flex sm:flex-col sm:grow-0 sm:w-5/6'>
-      <div className="flex sm:flex-grow justify-center">
+      <h1 className="pl-5 sm:text-left sm:p-0 text-lg sm:text-xl tracking-wide font-bold text-zinc-500 sm:mb-2 sm:ml-0">Edit User</h1>
+      <div className="flex sm:flex-grow justify-center rounded-md bg-white shadow-md">
         <form
           className="flex max-w-xs flex-grow flex-col gap-4 py-10 text-sm sm:max-w-5/6 sm:px-10 sm:text-base"
-          onSubmit={handleSubmit}>
+          onSubmit={handleSubmit}
+        >
           <div>
             <input
               type="text"
@@ -139,9 +136,9 @@ const EditForm = () => {
           <div>
             <input
               type="password"
-              name="newPassword"
-              value={newPassword}
-              placeholder="New Password"
+              name="password"
+              value={password}
+              placeholder="Password"
               onChange={handleInputChange}
               className="w-full rounded border border-gray-300 p-2 text-slate-500 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -151,7 +148,7 @@ const EditForm = () => {
               type="password"
               name="confirmPassword"
               value={confirmPassword}
-              placeholder="Confirm New Password"
+              placeholder="Confirm Password"
               onChange={handleInputChange}
               className="w-full rounded border border-gray-300 p-2 text-slate-500 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -160,24 +157,18 @@ const EditForm = () => {
           <div className='flex flex-row gap-4 '>
             <button
               type="submit"
-              className="w-full rounded bg-blue-500 p-2 font-semibold text-white hover:bg-blue-600">
-              Save
+              className="w-full rounded bg-blue-500 p-2 font-semibold text-white hover:bg-blue-600"
+            >
+              Update User
             </button>
-            <button className="w-full rounded bg-red-500 p-2 font-semibold text-white hover:bg-red-600">
-              <Link to="/users" className="w-full h-full block">
+            <Link to="/users" className="w-full h-full block">
+              <button className="w-full rounded bg-red-500 p-2 font-semibold text-white hover:bg-red-600">
                 Cancel
-              </Link>
-            </button>
+              </button>
+            </Link>
           </div>
         </form>
       </div>
-      {showDialog && (
-        <ConfirmationDialog
-          message="Are you sure you want to update these settings?"
-          onConfirm={handleDialogConfirm}
-          onCancel={handleDialogCancel}
-        />
-      )}
     </section>
   );
 };

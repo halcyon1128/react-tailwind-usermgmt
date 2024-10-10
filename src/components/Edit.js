@@ -3,54 +3,40 @@ import EditForm from './EditForm';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import UserProfile from './UserProfile';
-import { useArrayDatabase } from './contexts/ArrayDatabase'; // Import the custom hook
 
 function Edit() {
-    const { logOut } = useAuth();
-    const { clearCurrentUser } = useArrayDatabase(); // Use the custom hook to access clearCurrentUser
+    const { logout } = useAuth(); // Use the logout function from AuthContext
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        clearCurrentUser(); // Clear currentUser array from localStorage
-        logOut();
-        console.log('isLoggedIn status: ', localStorage.getItem('isLoggedIn'));
-        navigate('/login');
+        logout(); // Log the user out
+        navigate('/login'); // Redirect to the login page
     };
 
     return (
         <div className="flex items-center justify-center bg-zinc-800 py-0 text-zinc-800 sm:py-4 lg:px-20 xl:px-40">
-            <div className="sm:text-md flex h-screen w-screen flex-col rounded-md bg-zinc-50 text-xs">
-                <header className="sm:h-18 mb-8 flex h-20 w-full flex-row items-start justify-between p-5 font-semibold">
-                    <h2 className="w-1/6 text-lg font-black sm:w-auto sm:text-2xl">
-                        User Management
-                    </h2>
-                    <div className="flex flex-row items-center justify-between gap-2 sm:text-sm">
-                        <UserProfile /> {/* Dynamic user profile display */}
+            <div className="flex flex-col h-screen w-screen rounded-md bg-zinc-50 text-xs sm:text-md">
+                <header className="mb-8 flex h-20 w-full flex-row items-start justify-between p-5 font-semibold">
+                    <h2 className="text-lg font-black sm:text-2xl">User Management</h2>
+                    <div className="flex items-center gap-2 sm:text-sm">
+                        <UserProfile />
                         <button
                             onClick={handleLogout}
-                            className="mr-1 font-bold text-blue-500 hover:text-blue-300">
+                            className="mr-1 font-bold text-blue-500 hover:text-blue-300"
+                        >
                             Logout
                         </button>
                     </div>
                 </header>
-                <div className="flex flex-grow flex-col text-sm sm:flex-row sm:pr-5 sm:text-lg">
-                    <nav className="sm:h-1/8 sm:text-md flex h-auto w-full flex-row items-start justify-end gap-4 rounded-sm bg-white p-2 text-sm font-light shadow-sm sm:w-auto sm:flex-col sm:justify-start sm:rounded-xl sm:p-5 sm:shadow-lg">
-                        <button>
-                            <Link to="/users">Users</Link>
-                        </button>
-                        <button>
-                            <Link to="/settings">Settings</Link>
-                        </button>
+                <div className="flex flex-col sm:flex-row text-sm sm:text-lg">
+                    <nav className="flex flex-row sm:flex-col w-full h-auto sm:h-screen items-start justify-end gap-4 bg-white p-2 text-sm font-light shadow-sm sm:w-auto sm:rounded-xl sm:p-5 sm:shadow-lg">
+                        <Link to="/users" className="hover:text-blue-500">Users</Link>
+                        <Link to="/Edit" className="hover:text-blue-500">Settings</Link>
                     </nav>
-                    <main className="w-full flex-grow pt-6 sm:w-5/6 sm:pl-5">
-                        <div className="flex flex-row justify-between sm:mb-0 sm:ml-2 sm:items-end mt-2">
-                            <h1 className="ml-5 text-lg font-bold tracking-wide text-zinc-500 sm:mb-2 sm:ml-0 sm:text-xl">
-                                Edit
-                            </h1>
-                        </div>
-                        <section className="rounded bg-white p-4 shadow-md">
+                    <main className="flex-grow pt-6 sm:pt-8 sm:mx-5">
+                        <div className="flex justify-center flex-grow">
                             <EditForm />
-                        </section>
+                        </div>
                     </main>
                 </div>
             </div>
@@ -59,5 +45,3 @@ function Edit() {
 }
 
 export default Edit;
-
-//EditForm

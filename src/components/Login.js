@@ -1,85 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useAuth } from './contexts/AuthContext';
-import { useUserContext } from './contexts/UserContext';
-// import TestComponent from './TestComponent';
 
-function Login() {
+const Login = () => {
+  const { login, loginError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { logIn, authenticateUser } = useAuth(); // Use the updated context functions
-  const { userDatabase, addUser, deleteUser } = useUserContext(); // Access userDatabase, addUser, and deleteUser from UserContext
-  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false); // Add loading state
 
-  // Function to clean the database by deleting all users with email 'test@test.com'
-  const cleanDatabase = () => {
-    userDatabase.forEach((user) => {
-      if (user.email === 'test@test.com') {
-        deleteUser(user.id); // Call deleteUser for each 'test@test.com' user
-      }
-    });
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true); // Set loading to true when starting login
+    const result = await login(email, password);
+    setLoading(false); // Reset loading state after login attempt
 
-  // Check if 'test@test.com' exists, if not, add it
-  useEffect(() => {
-    const testUserExists = userDatabase.some(user => user.email === 'test@test.com');
-    if (!testUserExists) {
-      addUser({
-        id: Date.now(),
-        name: '', // Blank name as specified
-        email: 'test@test.com',
-        password: 'test', // Set default password
-      });
-    }
-  }, [userDatabase, addUser]);
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-
-    // Regex for validating email format
-    const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    // Define validation scenarios
-    const validationErrors = {
-      emailRequired: !email,
-      passwordRequired: !password,
-      invalidEmailFormat: !emailFormatRegex.test(email),
-      emailNotExists: !userDatabase.some((user) => user.email === email),
-      invalidPassword: userDatabase.some(
-        (user) => user.email === email && user.password !== password
-      ),
-    };
-
-    // Determine which error to set based on validation results
-    switch (true) {
-      case validationErrors.emailRequired:
-        setError('Email is required');
-        break;
-      case validationErrors.passwordRequired:
-        setError('Password is required');
-        break;
-      case validationErrors.invalidEmailFormat:
-        setError('Email format is invalid');
-        break;
-      case validationErrors.emailNotExists:
-        setError('Email does not exist');
-        break;
-      case validationErrors.invalidPassword:
-        setError('Invalid password');
-        break;
-      default:
-        // Use the authenticateUser function to check if credentials are valid
-        const isUser = authenticateUser(email, password); // Assuming authenticateUser is for user authentication
-        if (isUser) {
-          logIn(email); // Set the current user
-          cleanDatabase(); // Clean up test@test.com users after login
-          setError(''); // Clear error message on successful login
-          navigate('/users'); // Navigate to the users page
-        } else {
-          setError('An unexpected error occurred');
-        }
-        break;
+    if (result.success) {
+      console.log('Login successful, redirecting...');
+      // Redirect or perform other actions after successful login
+      localStorage.setItem('isLoggedIn', 'true'); // Set isLoggedIn to true
+      window.dispatchEvent(new Event('storage')); // Dispatch storage event to notify UserProfile (CROSS TAB NAME MOUNTING)
+      console.log('isLoggedIn:', localStorage.getItem('isLoggedIn'));
+      console.log('token:', localStorage.getItem('authToken'));
+    } else {
+      console.error('Login failed:', result.error);
+      // Handle login error (e.g., show a notification to the user)
     }
   };
 
@@ -113,19 +56,20 @@ function Login() {
                 className="w-full rounded border border-gray-300 p-2 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            {error && <p className="text-xs text-red-500">{error}</p>}
+            {loginError && <p className="text-xs text-red-500">{loginError}</p>} {/* Display error from AuthContext */}
+
             <button
               type="submit"
               className="w-full rounded bg-blue-500 p-2 font-semibold text-white hover:bg-blue-600"
+              disabled={loading}
             >
-              Login
+              {loading ? 'Logging in...' : 'Login'}
             </button>
           </form>
         </section>
-        {/* <TestComponent /> */}
       </div>
     </div>
   );
-}
+};
 
 export default Login;

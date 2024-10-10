@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "name": "Test User",
+    "email": "test@test.com",
+    "password": "test",
+    "isLoggedIn": false
+  },
+  {
+    "id": "1727668712925",
+    "name": "John Doe",
+    "email": "john@doe.com",
+    "password": "qwerty",
+    "isLoggedIn": false
+  },
+  {
+    "id": "1727694668980",
+    "isLoggedIn": false,
+    "name": "Jane Doe",
+    "email": "janet@doe.com",
+    "password": "asdfgh"
+  },
+  {
+    "id": "1728544869226",
+    "isLoggedIn": false,
+    "name": "Augustine C. Gorospe",
+    "email": "apichulay@gmail.com",
+    "password": "123456"
+  }
+]

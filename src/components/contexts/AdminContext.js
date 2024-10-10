@@ -1,30 +1,40 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useContext } from 'react';
+import axios from 'axios';
 
 const AdminContext = createContext();
 
 export const AdminProvider = ({ children }) => {
-    const [adminDatabase, setAdminDatabase] = useState(() => {
-        const storedAdmin = localStorage.getItem('adminDatabase');
-        return storedAdmin ? JSON.parse(storedAdmin) : [];
-    });
 
-    useEffect(() => {
-        localStorage.setItem('adminDatabase', JSON.stringify(adminDatabase));
-    }, [adminDatabase]);
-
-    const modifyAdmin = (id, updatedAdmin) => {
-        const updatedAdminDatabase = adminDatabase.map((admin) =>
-            admin.id === id ? { ...admin, ...updatedAdmin } : admin
-        );
-        setAdminDatabase(updatedAdminDatabase);
+    const getAdmin = async () => {
+        const token = localStorage.getItem('authToken');
+        const response = await axios.post('http://localhost:6060/settings', {}, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return response.data; // { name, email, currentPassword }
     };
 
+    const patchAdmin = async ({ name, email, currentPassword, newPassword }) => {
+        const token = localStorage.getItem('authToken');
+        const response = await axios.patch('http://localhost:6060/settings', {
+            name,
+            email,
+            currentPassword,
+            newPassword
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        if (response.data.token) {
+            localStorage.setItem('authToken', response.data.token); // Update token if needed
+        }
+        return response.data;
+    };
 
     return (
-        <AdminContext.Provider value={{ adminDatabase, modifyAdmin }}>
+        <AdminContext.Provider value={{ getAdmin, patchAdmin }}>
             {children}
         </AdminContext.Provider>
     );
 };
 
-export const useAdminContext = () => useContext(AdminContext);
+export const useAdmin = () => useContext(AdminContext);

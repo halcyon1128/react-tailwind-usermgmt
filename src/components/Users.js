@@ -3,18 +3,14 @@ import Table from './Table';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import UserProfile from './UserProfile';
-import { useArrayDatabase } from './contexts/ArrayDatabase'; // Import the custom hook
 
 function Users() {
-  const { logOut } = useAuth();
-  const { clearCurrentUser } = useArrayDatabase(); // Use the custom hook to access clearCurrentUser
+  const { logout } = useAuth(); // Use the logout function from AuthContext
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    clearCurrentUser(); // Clear currentUser array from localStorage
-    logOut();
-    console.log('isLoggedIn status: ', localStorage.getItem('isLoggedIn'));
-    navigate('/login');
+    logout(); // Log the user out
+    navigate('/login'); // Redirect to the login page
   };
 
   return (

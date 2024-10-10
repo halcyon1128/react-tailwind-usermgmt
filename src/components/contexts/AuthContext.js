@@ -1,67 +1,58 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import axios from 'axios';
 
 // Create the context
 const AuthContext = createContext();
 
 // Create the provider component
 export const AuthProvider = ({ children }) => {
+  const [token, setToken] = useState(null); // Store only the token
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [loginError, setLoginError] = useState(''); // State for login errors
 
-  // Initialize isLoggedIn on mount
-  useEffect(() => {
-    const storedIsLoggedIn = localStorage.getItem('isLoggedIn');
-    console.log('Initializing isLoggedIn from localStorage:', storedIsLoggedIn);
-    if (storedIsLoggedIn !== null) {
-      setIsLoggedIn(JSON.parse(storedIsLoggedIn));
-    } else {
-      localStorage.setItem('isLoggedIn', JSON.stringify(false));
+  // Function to login and store the token
+  const login = async (email, password) => {
+    // Check if a token exists
+    if (token) {
+      // If a token exists, logout first
+      logout();
     }
-  }, []);
 
-  // Function to authenticate user credentials
-  const authenticateUser = (email, password) => {
-    const storedUsers = localStorage.getItem('userDatabase');
-    console.log('Stored user database:', storedUsers);
-    if (!storedUsers) return false;
+    try {
+      const response = await axios.post('http://localhost:6060/login', { email, password });
 
-    const userDatabase = JSON.parse(storedUsers);
-
-    return userDatabase.some(user => user.email === email && user.password === password);
-  };
-
-  // Function to log in the user
-  const logIn = (email) => {
-    const storedUsers = localStorage.getItem('userDatabase');
-    if (storedUsers) {
-      const userDatabase = JSON.parse(storedUsers);
-      const user = userDatabase.find(user => user.email === email);
-
-      if (user) {
-        setIsLoggedIn(true);
-        setCurrentUser(user); // Store the full user object
-        localStorage.setItem('isLoggedIn', JSON.stringify(true));
-        localStorage.setItem('currentUser', JSON.stringify(user)); // Save user object to localStorage
-        console.log('Login successful. Full user object stored in state and localStorage.');
+      // Check response status and data
+      if (response.status === 200) {
+        const { token } = response.data; // Get token
+        localStorage.setItem('authToken', token); // Store the access token
+        setToken(token); // Update state with the token
+        setIsLoggedIn(true); // Update logged-in state
+        setLoginError(''); // Clear any previous error
+        return { success: true }; // Indicate success
       }
-    } 
+    } catch (error) {
+      // Log the error response for debugging
+      console.error('Error during login:', error.response?.data?.message || 'Login failed. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Login failed. Please try again.';
+      setLoginError(errorMessage); // Set specific error message from response
+      return { success: false, error: errorMessage }; // Indicate failure with error message
+    }
   };
 
-  // Function to log out the user
-  const logOut = () => {
-    setIsLoggedIn(false);
-    setCurrentUser(null);
-    localStorage.setItem('isLoggedIn', JSON.stringify(false));
-    localStorage.removeItem('currentUser'); // Remove the user object from localStorage
-    console.log('Logged out. State and localStorage updated.');
+  const logout = () => {
+    // Clear the token from local storage
+    localStorage.removeItem('authToken');
+    setToken(null); // Clear the token state
+    setIsLoggedIn(false); // Update the logged-in state
+    console.log('Logged out successfully');
   };
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, logIn, logOut, authenticateUser, currentUser }}>
+    <AuthContext.Provider value={{ token, isLoggedIn, login, logout, loginError }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Create a custom hook to use the context
+// Custom hook to use the AuthContext
 export const useAuth = () => useContext(AuthContext);

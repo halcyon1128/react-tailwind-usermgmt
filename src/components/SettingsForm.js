@@ -1,69 +1,74 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useUserContext } from './contexts/UserContext';
-import { useArrayDatabase } from './contexts/ArrayDatabase';
-import ConfirmationDialog from './ConfirmationDialog';
+import { useNavigate } from 'react-router-dom';
+import { useAdmin } from './contexts/AdminContext';
+import { useUserContext } from './contexts/UserContext'; // Import the UserContext
 
 const SettingsForm = () => {
-  const [loggedUser, setLoggedUser] = useState(null);
+  const navigate = useNavigate();
+  const { getAdmin, patchAdmin } = useAdmin(); // Access functions from AdminContext
+  const { userDatabase } = useUserContext(); // Access userDatabase from UserContext
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [error, setError] = useState('');
-  const [showDialog, setShowDialog] = useState(false);
-  const [submitData, setSubmitData] = useState(null);
-  const navigate = useNavigate();
-  const { modifyUser } = useUserContext();
-  const { setCurrentUser } = useArrayDatabase();
+
   const emailFormatRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem('currentUser'));
-    if (storedUser) {
-      setLoggedUser(storedUser);
-      setName(storedUser.name);
-      setEmail(storedUser.email);
-    } else {
-      setError('No current user found');
-    }
-  }, []);
+    const fetchUserSettings = async () => {
+      try {
+        const { name, email } = await getAdmin(); // Get user data from server
+        setName(name);
+        setEmail(email);
+      } catch (err) {
+        console.error('Error fetching admin settings', err);
+      }
+    };
+    fetchUserSettings();
+  }, [getAdmin]);
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
-    if (name === 'name') setName(value);
-    if (name === 'email') setEmail(value);
-    if (name === 'currentPassword') setCurrentPassword(value);
-    if (name === 'newPassword') setNewPassword(value);
-    if (name === 'confirmPassword') setConfirmPassword(value);
+    switch (name) {
+      case 'name':
+        setName(value);
+        break;
+      case 'email':
+        setEmail(value);
+        break;
+      case 'currentPassword':
+        setCurrentPassword(value);
+        break;
+      case 'newPassword':
+        setNewPassword(value);
+        break;
+      case 'confirmNewPassword':
+        setConfirmNewPassword(value);
+        break;
+      default:
+        break;
+    }
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
 
-    if (!loggedUser) {
-      setError('No current user found');
-      return;
-    }
-
-    // Get the userDatabase from localStorage
-    const userDatabase = JSON.parse(localStorage.getItem('userDatabase')) || [];
-
     // Check for existing names and emails
-    const nameExists = userDatabase.some(user => user.name === name && user.id !== loggedUser.id);
-    const emailExists = userDatabase.some(user => user.email === email && user.id !== loggedUser.id);
+    const nameExists = userDatabase.some(user => user.name === name);
+    const emailExists = userDatabase.some(user => user.email === email);
 
     const validationErrors = {
       nameRequired: !name,
       emailRequired: !email,
       invalidEmailFormat: !emailFormatRegex.test(email),
       currentPasswordRequired: !currentPassword,
-      currentPasswordIsValid: currentPassword !== loggedUser.password,
       newPasswordRequired: !newPassword,
-      confirmPasswordRequired: !confirmPassword,
-      confirmPasswordMismatch: confirmPassword !== newPassword,
+      confirmNewPasswordRequired: !confirmNewPassword,
+      confirmNewPasswordMismatch: confirmNewPassword !== newPassword,
       nameTaken: nameExists,
       emailTaken: emailExists,
     };
@@ -81,17 +86,14 @@ const SettingsForm = () => {
       case validationErrors.currentPasswordRequired:
         setError('Current password is required');
         break;
-      case validationErrors.currentPasswordIsValid:
-        setError('Must input your current password');
-        break;
       case validationErrors.newPasswordRequired:
         setError('New password is required');
         break;
-      case validationErrors.confirmPasswordRequired:
-        setError('Confirm password is required');
+      case validationErrors.confirmNewPasswordRequired:
+        setError('Confirm new password is required');
         break;
-      case validationErrors.confirmPasswordMismatch:
-        setError('Confirm password does not match new password');
+      case validationErrors.confirmNewPasswordMismatch:
+        setError('Confirm new password does not match new password');
         break;
       case validationErrors.nameTaken:
         setError('Name is already taken');
@@ -100,45 +102,28 @@ const SettingsForm = () => {
         setError('Email is already taken');
         break;
       default:
-        if (newPassword === currentPassword) {
-          alert('New password is the same as current password!');
-        }
-        setSubmitData({
-          id: loggedUser.id,
+        const updatedUser = {
           name,
           email,
-          password: newPassword
-        });
-        setShowDialog(true);
+          currentPassword,
+          newPassword,
+        };
+
+        try {
+          await patchAdmin(updatedUser); // Update the user settings
+          alert('Settings updated successfully!');
+          navigate('/profile'); // Navigate to profile on success
+        } catch (error) {
+          setError('Error updating settings: ' + error.message);
+        }
         break;
     }
   };
 
-  const handleDialogConfirm = () => {
-    if (submitData) {
-      modifyUser(submitData.id, submitData);
-      setCurrentUser(submitData);
-      console.log('User updated:', submitData);
-      console.log('User Database from Local Storage:', JSON.parse(localStorage.getItem('userDatabase')));
-      setName('');
-      setEmail('');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setError('');
-      alert('Your user settings were successfully updated!');
-      navigate('/users');
-    }
-    setShowDialog(false);
-  };
-
-  const handleDialogCancel = () => {
-    setShowDialog(false);
-  };
-
   return (
     <section className='flex-grow sm:flex sm:flex-col sm:grow-0 sm:w-5/6'>
-      <div className="flex sm:flex-grow justify-center">
+      <h1 className="pl-5 sm:text-left sm:p-0 text-lg sm:text-xl tracking-wide font-bold text-zinc-500 sm:mb-2 sm:ml-0">Settings</h1>
+      <div className="flex sm:flex-grow justify-center rounded-md bg-white shadow-md">
         <form
           className="flex max-w-xs flex-grow flex-col gap-4 py-10 text-sm sm:max-w-5/6 sm:px-10 sm:text-base"
           onSubmit={handleSubmit}
@@ -186,9 +171,9 @@ const SettingsForm = () => {
           <div>
             <input
               type="password"
-              name="confirmPassword"
-              value={confirmPassword}
-              placeholder="Confirm Password"
+              name="confirmNewPassword"
+              value={confirmNewPassword}
+              placeholder="Confirm New Password"
               onChange={handleInputChange}
               className="w-full rounded border border-gray-300 p-2 text-slate-500 antialiased focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -199,26 +184,20 @@ const SettingsForm = () => {
               type="submit"
               className="w-full rounded bg-blue-500 p-2 font-semibold text-white hover:bg-blue-600"
             >
-              Save
+              Update Settings
             </button>
-            <button className="w-full rounded bg-red-500 p-2 font-semibold text-white hover:bg-red-600">
-              <Link to="/users" className="w-full h-full block">
-                Cancel
-              </Link>
+            <button
+              type="button"
+              className="w-full rounded bg-red-500 p-2 font-semibold text-white hover:bg-red-600"
+              onClick={() => navigate('/profile')}
+            >
+              Cancel
             </button>
           </div>
         </form>
       </div>
-      {showDialog && (
-        <ConfirmationDialog
-          message="Are you sure you want to update your settings?"
-          onConfirm={handleDialogConfirm}
-          onCancel={handleDialogCancel}
-        />
-      )}
     </section>
   );
 };
 
 export default SettingsForm;
-
