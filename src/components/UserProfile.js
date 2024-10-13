@@ -1,66 +1,53 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import jwtDecode from 'jwt-decode'; // Correct named import
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
 const UserProfile = () => {
-  const [userName, setUserName] = useState('');
-  const [error, setError] = useState('');
+  const [userName, setUserName] = useState("No user logged in");
+  const [error, setError] = useState("");
 
-  // Function to fetch the user's name based on the token
-  const fetchUserName = async () => {
+  const fetchUserName = async (token) => {
     try {
-      const authToken = localStorage.getItem('authToken'); // Get the token from localStorage
-      if (authToken) {
-        // Call the server to get the user's name using the token in the Authorization header
-        const response = await axios.post(
-          'http://localhost:6060/getUserName',
-          {},
-          {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-            },
-          }
-        );
-
-        // Set the user's name from the server's response
-        if (response.data.name) {
-          setUserName(response.data.name);
-        } else {
-          setUserName('User not found');
+      const response = await axios.post(
+        "http://localhost:6060/getUserName",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      } else {
-        setUserName('No user logged in');
-      }
+      );
+      setUserName(response.data.name);
     } catch (error) {
-      console.error('Error fetching user name:', error);
-      setError('Error fetching user name');
+      console.error("Error fetching user name:", error);
+      setError("Error fetching user name");
     }
   };
 
   useEffect(() => {
-    // Fetch the user's name on component mount
-    fetchUserName();
-
-    // Event listener to detect changes in localStorage (authToken)
-    const handleStorageChange = (event) => {
-      if (event.key === 'authToken') {
-        fetchUserName(); // Re-fetch the user's name if the token changes
+    const handleTokenChange = () => {
+      const authToken = localStorage.getItem("authToken");
+      if (authToken) {
+        fetchUserName(authToken);
+      } else {
+        setUserName("No user logged in");
       }
     };
 
-    // Add the event listener to detect token changes
-    window.addEventListener('storage', handleStorageChange);
+    // Initial fetch
+    handleTokenChange();
 
-    // Cleanup the event listener when the component is unmounted
+    // Listen for storage changes
+    window.addEventListener("storage", handleTokenChange);
+
+    // Cleanup listener on unmount
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener("storage", handleTokenChange);
     };
-  }, []); // Empty dependency array to run only once on mount
+  }, []);
 
   return (
     <div>
-      {error && <p>{error}</p>}
-      <h1>{userName || 'Loading...'}</h1>
+      <h1>{error ? <p>{error}</p> : <p>{userName}</p>}</h1>
     </div>
   );
 };

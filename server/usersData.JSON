@@ -26,5 +26,12 @@
     "name": "Augustine C. Gorospe",
     "email": "apichulay@gmail.com",
     "password": "123456"
+  },
+  {
+    "id": "1728565647576",
+    "isLoggedIn": false,
+    "name": "Alexandria Gorospe",
+    "email": "ajabubu@gmail.com",
+    "password": "ajabubu"
   }
 ]
