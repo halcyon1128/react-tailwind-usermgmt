@@ -25,11 +25,6 @@ export const AdminProvider = ({ children }) => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    // Update local storage if a new token is returned
-    if (response.data.token) {
-      localStorage.setItem("authToken", response.data.token);
-    }
-
     return response.data;
   };
 

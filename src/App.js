@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useNavigate,
 } from "react-router-dom";
 import axios from "axios"; // Import axios for HTTP requests
 import Login from "./components/Login";
@@ -48,6 +49,13 @@ function App() {
 // Create a wrapper component to handle the authentication check
 const RoutesWrapper = () => {
   const { token } = useAuth(); // Get the token from AuthContext
+  const navigate = useNavigate();
+
+  // Create a reusable function to navigate and reload
+  const navigateAndReload = (path) => {
+    navigate(path);
+    window.location.reload(); // Reload the page after navigating
+  };
 
   return (
     <Routes>
@@ -57,7 +65,7 @@ const RoutesWrapper = () => {
           !token || !checkUserExists(token) ? (
             <Login />
           ) : (
-            <Navigate to="/users" />
+            navigateAndReload("/users") // Use the reusable function
           )
         }
       />
@@ -66,7 +74,7 @@ const RoutesWrapper = () => {
         element={checkUserExists(token) ? <Users /> : <Navigate to="/login" />}
       />
       <Route
-        path="/edit/:token"
+        path="/edit/:id"
         element={checkUserExists(token) ? <Edit /> : <Navigate to="/login" />}
       />
       <Route

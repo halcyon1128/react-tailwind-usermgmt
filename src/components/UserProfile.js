@@ -1,22 +1,15 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import { useAdmin } from "./contexts/AdminContext"; // Import the UserContext
 
 const UserProfile = () => {
   const [userName, setUserName] = useState("No user logged in");
   const [error, setError] = useState("");
+  const { getAdmin } = useAdmin(); // Get the getUser function from UserContext
 
   const fetchUserName = async (token) => {
     try {
-      const response = await axios.post(
-        "http://localhost:6060/getUserName",
-        {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setUserName(response.data.name);
+      const user = await getAdmin(token); // Fetch user data using the token
+      setUserName(user.name); // Set the user's name in state
     } catch (error) {
       console.error("Error fetching user name:", error);
       setError("Error fetching user name");
@@ -27,23 +20,23 @@ const UserProfile = () => {
     const handleTokenChange = () => {
       const authToken = localStorage.getItem("authToken");
       if (authToken) {
-        fetchUserName(authToken);
+        fetchUserName(authToken); // Call fetchUserName if token exists
       } else {
         setUserName("No user logged in");
       }
     };
 
-    // Initial fetch
+    // Initial fetch when component mounts
     handleTokenChange();
 
-    // Listen for storage changes
+    // Listen for localStorage changes (in case the authToken is updated)
     window.addEventListener("storage", handleTokenChange);
 
     // Cleanup listener on unmount
     return () => {
       window.removeEventListener("storage", handleTokenChange);
     };
-  }, []);
+  }, [getAdmin]); // Add getUser as a dependency to avoid stale references
 
   return (
     <div>

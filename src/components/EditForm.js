@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useUserContext } from "./contexts/UserContext";
-import axios from "axios";
 
 const EditForm = () => {
-  const { token } = useParams(); // Get the token from the URL params
-  const { modifyUser, userDatabase } = useUserContext(); // Use modifyUser and userDatabase from context
+  const { id } = useParams(); // Get the tokenized id from the URL params
+  const { getUser, modifyUser, userDatabase } = useUserContext(); // Use getUser, modifyUser, and userDatabase from context
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [originalName, setOriginalName] = useState(""); // State for original name
+  const [originalEmail, setOriginalEmail] = useState(""); // State for original email
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -18,26 +19,20 @@ const EditForm = () => {
 
   useEffect(() => {
     // Fetch user details by token (initial load)
-    const fetchUserDetails = async () => {
+    const loadUserDetails = async () => {
       try {
-        const response = await axios.get("http://localhost:6060/users/token", {
-          headers: {
-            Authorization: `Bearer ${token}`, // Use token from URL params
-          },
-        });
-        const userData = response.data;
+        const userData = await getUser(id); // Use getUser function from UserContext
         setName(userData.name);
         setEmail(userData.email);
+        setOriginalName(userData.name); // Set original name
+        setOriginalEmail(userData.email); // Set original email
       } catch (error) {
-        setError(
-          "Error fetching user data: " + error.response.data.message ||
-            error.message
-        );
+        setError("Error fetching user data: " + error.message);
       }
     };
 
-    fetchUserDetails();
-  }, [token]);
+    loadUserDetails();
+  }, [id, getUser]); // Add getUser to dependency array
 
   const handleInputChange = (event) => {
     const { name, value } = event.target;
@@ -51,12 +46,12 @@ const EditForm = () => {
     event.preventDefault();
     setError("");
 
-    // Check for existing names and emails
+    // Check for existing names and emails, ignoring original values
     const nameExists = userDatabase.some(
-      (user) => user.name === name && user.token !== token
+      (user) => user.name === name && user.name !== originalName // Ensure the name being checked is not the original
     );
     const emailExists = userDatabase.some(
-      (user) => user.email === email && user.token !== token
+      (user) => user.email === email && user.email !== originalEmail // Ensure the email being checked is not the original
     );
 
     const validationErrors = {
@@ -99,12 +94,13 @@ const EditForm = () => {
         const updatedUser = {
           name,
           email,
-          password,
+          confirmPassword, // Ensure password is included
         };
 
         // Use the modifyUser function from UserContext
         try {
-          await modifyUser(token, updatedUser); // Use token as the identifier
+          await modifyUser(id, updatedUser); // Pass updatedUser to modifyUser
+          window.location.reload();
           alert("User updated successfully!");
           navigate("/users"); // Navigate to users page on success
         } catch (error) {

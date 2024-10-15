@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import ConfirmationDialog from "./ConfirmationDialog";
 import { useNavigate } from "react-router-dom";
 import { useUserContext } from "./contexts/UserContext";
@@ -6,31 +6,31 @@ import { useUserContext } from "./contexts/UserContext";
 const Table = () => {
   const { userDatabase, deleteUser } = useUserContext(); // Access userDatabase and deleteUser from context
   const [showDialog, setShowDialog] = useState(false);
-  const [userTokenToDelete, setUserTokenToDelete] = useState(null);
+  const [userIdConfirmDelete, setUserIdConfirmDelete] = useState(null); // State to hold the user ID to delete
   const navigate = useNavigate();
 
-  const handleEdit = (token) => {
-    navigate(`/edit/${token}`); // Navigate to EditForm with user token
+  const handleEdit = (id) => {
+    navigate(`/edit/${id}`); // Navigate to EditForm with user tokenized id
   };
 
-  const handleDelete = () => {
-    if (userTokenToDelete) {
-      deleteUser(userTokenToDelete);
-      setShowDialog(false);
+  const handleDelete = (id) => {
+    if (id) {
+      deleteUser(id); // Call deleteUser with the ID
+      setShowDialog(false); // Close the dialog after deletion
     }
   };
 
-  const confirmDelete = (token) => {
-    setUserTokenToDelete(token);
-    setShowDialog(true);
+  const confirmDelete = (id) => {
+    setUserIdConfirmDelete(id); // Store the ID of the user to delete
+    setShowDialog(true); // Show the confirmation dialog
   };
 
   const handleDialogConfirm = () => {
-    handleDelete();
+    handleDelete(userIdConfirmDelete); // Pass the stored ID to the delete function
   };
 
   const handleDialogCancel = () => {
-    setShowDialog(false);
+    setShowDialog(false); // Close the dialog without deleting
   };
 
   return (
@@ -51,7 +51,7 @@ const Table = () => {
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
           {userDatabase.map((user) => (
-            <tr key={user.token}>
+            <tr key={user.id}>
               <td className="whitespace-nowrap px-3 py-2 text-sm font-medium text-gray-800">
                 {user.name}
               </td>
@@ -60,14 +60,14 @@ const Table = () => {
               </td>
               <td className="flex flex-row gap-2 whitespace-nowrap px-3 py-2 text-sm font-medium">
                 <button
-                  onClick={() => handleEdit(user.token)} // Navigate using the user token
+                  onClick={() => handleEdit(user.id)}
                   className="text-blue-600 hover:text-blue-800"
                 >
                   Edit
                 </button>
                 <span>|</span>
                 <button
-                  onClick={() => confirmDelete(user.token)}
+                  onClick={() => confirmDelete(user.id)} // Confirm delete action
                   className="text-red-600 hover:text-red-800"
                 >
                   Delete
@@ -80,8 +80,8 @@ const Table = () => {
       {showDialog && (
         <ConfirmationDialog
           message="Delete this user?"
-          onConfirm={handleDialogConfirm}
-          onCancel={handleDialogCancel}
+          onConfirm={handleDialogConfirm} // Call handleDialogConfirm on confirmation
+          onCancel={handleDialogCancel} // Call handleDialogCancel on cancellation
         />
       )}
     </div>

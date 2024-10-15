@@ -101,7 +101,7 @@ app.post("/getUserName", async (req, res) => {
 
     // If user found, respond with name
     if (user) {
-      return res.json({ name: user.name });
+      return res.json(user);
     } else {
       return res.status(404).json({ message: "User not found" });
     }
@@ -180,7 +180,6 @@ User management
 app.get("/userlist", async (req, res) => {
   try {
     const users = await readData(); // Fetch all users from the MongoDB 'users' collection
-
     // Generate tokens for each user and replace their _id with the token
     const usersWithTokens = users.map((user) => {
       // Generate a token with the user's _id in the payload
@@ -191,17 +190,15 @@ app.get("/userlist", async (req, res) => {
         JWT_SECRET,
         { expiresIn: "1h" } // Set token expiration as needed
       );
-
       // Return user object with token instead of _id
       return {
+        id: token,
         name: user.name,
         email: user.email,
         isLoggedIn: user.isLoggedIn,
         password: user.password, //to be removed later on
-        token, // Include the generated token
       };
     });
-
     // Respond with the modified user list
     res.json(usersWithTokens);
   } catch (error) {
@@ -210,119 +207,153 @@ app.get("/userlist", async (req, res) => {
   }
 });
 
-// Get User by ID
-app.get("/users/token", async (req, res) => {
+//GEt user by tokenized ID from table/EditForm request
+app.get("/users/:id", async (req, res) => {
+  const tokenId = req.params.id; // Get the tokenized ID from the route parameters
+
+  if (!tokenId) {
+    return res.status(400).json({ message: "Tokenized ID required" });
+  }
+
   try {
-    // Retrieve token from Authorization header
-    const token = req.headers.authorization.split(" ")[1]; // Assumes Bearer token format
-    if (!token) {
-      return res.status(401).json({ message: "No token provided" });
-    }
     // Decode the token to get the user ID
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); // Use your secret key
-    const userId = decoded.id; // Assuming the user ID is stored in the token as `id`
-    // Fetch users data
-    const users = await readData();
-    const user = users.find((u) => u._id.toString() === userId.toString()); // Check for _id
-    // If user found, respond with user data
+    const decoded = jwt.verify(tokenId, JWT_SECRET); // Ensure this secret is correctly set
+    const userId = decoded.id; // Extract user ID from the token
+
+    // You can use readData() to fetch users or directly find the user
+    const user = await User.findById(userId); // Fetch the user directly using Mongoose
+
     if (user) {
-      res.json(user);
+      res.json({ name: user.name, email: user.email });
     } else {
       res.status(404).json({ message: "User not found" });
     }
   } catch (error) {
     console.error("Error fetching user:", error);
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
+// CREATE NEW User - POST /users
 app.post("/users", async (req, res) => {
-  const users = await readData(); // This should now be from your MongoDB collection
+  // Verify the authToken and extract admin ID
+  const authToken = req.headers["authorization"]?.split(" ")[1];
 
-  const newUser = {
-    isLoggedIn: false,
-    ...req.body,
-  };
-
-  // Assuming you have a MongoDB collection reference, you can insert the user directly
-  const result = await usersCollection.insertOne(newUser); // Insert the new user into the MongoDB collection
-
-  // You can return the newly created user with the MongoDB generated _id
-  res.status(201).json({ ...newUser, _id: result.insertedId }); // Include the _id in the response
-});
-
-// Update User - PATCH /users/token
-app.patch("/users/token", async (req, res) => {
-  const { token, authToken, updatedUser } = req.body; // Extract parameters from request body
-
-  // Check if both tokens are present
-  if (!token || !authToken) {
-    return res.status(401).json({ message: "Tokens required" });
+  if (!authToken) {
+    return res.status(401).json({ message: "No token provided." });
   }
 
   try {
-    // Extract _id from the token
-    const decodedToken = jwt.verify(token, JWT_SECRET);
-    const userIdFromToken = decodedToken.id; // Extract _id from the token
-
+    const decoded = jwt.verify(authToken, process.env.JWT_SECRET);
+    const adminId = decoded._id;
     const users = await readData();
-    const userIndex = users.findIndex(
-      (u) => u._id.toString() === userIdFromToken
-    ); // Check for _id (converted to string)
+    const verified = users.find((user) => user._id.toString() === adminId);
 
-    // If user found, update the user data
-    if (userIndex !== -1) {
-      const updatedUserData = { ...users[userIndex], ...updatedUser };
-      users[userIndex] = updatedUserData;
-      await writeData(users); // Save updated user data
-
-      // Extract _id from authToken and validate
-      const decodedAuthToken = jwt.verify(authToken, JWT_SECRET);
-      const userIdFromAuthToken = decodedAuthToken.id;
-
-      if (userIdFromAuthToken === userIdFromToken) {
-        // Generate a new token with the updated user details
-        const newAuthToken = jwt.sign(
-          { id: updatedUserData._id }, // Use updatedUserData._id
-          JWT_SECRET,
-          { expiresIn: "1h" }
-        );
-
-        return res.json({ ...updatedUserData, token: newAuthToken }); // Respond with updated user data and new token
-      } else {
-        return res.status(403).json({ message: "Token mismatch" });
-      }
+    // Check if the admin exists in the database
+    if (verified) {
+      const newUser = {
+        isLoggedIn: false,
+        ...req.body,
+      };
+      const result = await usersCollection.insertOne(newUser);
+      res.status(201).json({ ...newUser, _id: result.insertedId });
     } else {
-      return res.status(404).json({ message: "User not found" });
+      return res
+        .status(403)
+        .json({ message: "Admin not found or unauthorized." });
     }
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to add user: " + error.message });
   }
 });
 
-app.delete("/users", async (req, res) => {
-  const token = req.headers.authorization?.split(" ")[1];
+// UPDATE EXISTING User - PATCH /users/token
+app.patch("/users/:id", async (req, res) => {
+  const userIdToken = req.params.id; // Extract the user ID from the URL params
+  const authToken = req.headers.authorization?.split(" ")[1]; // Extract authToken from the headers
 
-  // Check if token is present
-  if (!token) {
+  // Check if authToken is present
+  if (!authToken) {
     return res.status(401).json({ message: "Token required" });
   }
 
   try {
-    const decodedToken = jwt.verify(token, JWT_SECRET);
-    const userIdFromToken = decodedToken.id; // Extract _id from the token
+    const decodedAuthToken = jwt.verify(authToken, JWT_SECRET); // Verify token and extract admin ID
+    const userIdFromAuthToken = decodedAuthToken.id; // Extract _id from the authToken
 
+    const decodedUserIdToken = jwt.verify(userIdToken, JWT_SECRET); // verify tokenized ID
+    const userID = decodedUserIdToken.id; // Extract _id from the tokenized ID
+
+    // Read users from data to check if the user exists
     const users = await readData();
-    const newUsers = users.filter((u) => u._id.toString() !== userIdFromToken);
 
-    if (newUsers.length !== users.length) {
-      await writeData(newUsers);
-      res.status(200).json({ message: "User deleted" });
+    const adminUser = users.find(
+      (u) => u._id.toString() === userIdFromAuthToken
+    ); // Check for _id (converted to string)
+
+    // If admin user is found
+    if (!adminUser) {
+      return res.status(404).json({ message: "Admin user not found" });
+    } else if (adminUser) {
+      // Find the user to be updated by ID
+      const userToUpdate = users.find((u) => u._id.toString() === userID); // Find the user by param.id
+
+      if (!userToUpdate) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Update user information with the contents of updatedUser
+      userToUpdate.name = req.body.name || userToUpdate.name; // Update name if provided
+      userToUpdate.email = req.body.email || userToUpdate.email; // Update email if provided
+      userToUpdate.password = req.body.newPassword || userToUpdate.password; // Update password if provided
+
+      await writeData(users); // Write changes to the database
+
+      return res.status(200).json({ message: "User updated successfully" });
     } else {
-      res.status(404).json({ message: "User not found" });
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to modify this user" });
     }
   } catch (err) {
+    console.error("Error updating user:", err);
     return res.status(401).json({ message: "Invalid token" });
+  }
+});
+
+app.delete("/users/:id", async (req, res) => {
+  const authToken = req.headers.authorization?.split(" ")[1];
+  const decodedAuthToken = jwt.verify(authToken, JWT_SECRET);
+  const tokenId = req.params.id;
+  const users = await readData();
+  const verified = users.find((u) => u._id.toString() === decodedAuthToken.id);
+
+  // Check if token is present
+  if (!authToken) {
+    return res.status(401).json({ message: "Token required" });
+  }
+
+  if (verified) {
+    try {
+      const decodedToken = jwt.verify(tokenId, JWT_SECRET);
+      const userIdFromToken = decodedToken.id; // Extract _id from the token
+
+      const newUsers = users.filter(
+        (u) => u._id.toString() !== userIdFromToken
+      );
+
+      if (newUsers.length !== users.length) {
+        await writeData(newUsers);
+        res.status(200).json({ message: "User deleted" });
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
+    } catch (err) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
   }
 });
 
@@ -343,7 +374,7 @@ app.post("/settings", async (req, res) => {
 
   // If user found, respond with name and email
   if (user) {
-    res.json({ name: user.name, email: user.email });
+    res.json({ name: user.name, email: user.email, password: user.password });
   } else {
     res.status(404).json({ message: "User not found" });
   }
@@ -352,21 +383,17 @@ app.post("/settings", async (req, res) => {
 // Update User Settings - PATCH /settings
 app.patch("/settings", async (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
-
   // Check if token is present
   if (!token) {
     return res.status(401).json({ message: "Token required" });
   }
-
   try {
     // Verify token and extract user ID
     const decodedToken = jwt.verify(token, JWT_SECRET);
     const userId = decodedToken.id; // Extract the _id from the token
-
     // Read users from data
     const users = await readData();
     const user = users.find((u) => u._id.toString() === userId); // Check for _id (converted to string)
-
     // If user found, check current password
     if (user) {
       // Check if the current password matches
@@ -375,21 +402,14 @@ app.patch("/settings", async (req, res) => {
           .status(403)
           .json({ message: "Current password is incorrect" });
       }
-
       // Update user information
       user.name = req.body.name || user.name; // Update name if provided
       user.email = req.body.email || user.email; // Update email if provided
       user.password = req.body.newPassword || user.password; // Update password
 
-      await writeData(users); // Write changes to the data
+      await writeData(users); // Write changes to the database
 
-      // Generate a new token with updated user info
-      const newToken = jwt.sign({ id: userId }, JWT_SECRET, {
-        expiresIn: "1h",
-      });
-
-      // Return updated user info and new token
-      return res.json({ token: newToken });
+      return res.status(200).json({ message: "User updated" });
     } else {
       return res.status(404).json({ message: "User not found" });
     }
@@ -397,6 +417,7 @@ app.patch("/settings", async (req, res) => {
     return res.status(401).json({ message: "Invalid token" });
   }
 });
+
 // Listen on the specified port
 
 app.listen(PORT, () => {

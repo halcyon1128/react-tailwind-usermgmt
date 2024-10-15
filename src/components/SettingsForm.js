@@ -27,6 +27,7 @@ const SettingsForm = () => {
         const userData = await getAdmin(); // Get user data from server
         setName(userData.name);
         setEmail(userData.email);
+        setCurrentPassword(userData.password);
         setOriginalName(userData.name);
         setOriginalEmail(userData.email);
       } catch (err) {
@@ -120,17 +121,9 @@ const SettingsForm = () => {
         };
 
         try {
-          const response = await patchAdmin(updatedUser); // Update the user settings and get the response
-
-          // Store the new token in localStorage
-          if (response.token) {
-            localStorage.setItem("authToken", response.token);
-            window.dispatchEvent(new Event("storage")); // Dispatch storage event to notify UserProfile (CROSS TAB NAME MOUNTING)
-            console.log("token", localStorage.getItem("authToken"));
-          }
-
+          await patchAdmin(updatedUser); // Update the user settings and get the response
+          window.location.reload();
           alert("Settings updated successfully!");
-          navigate("/profile"); // Navigate to profile on success
         } catch (error) {
           setError("Error updating settings: " + error.message);
         }
