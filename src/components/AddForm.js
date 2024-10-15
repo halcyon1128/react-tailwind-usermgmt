@@ -76,6 +76,7 @@ const AddForm = () => {
         // Add user using the context's addUser method
         try {
           await addUser(newUser); // Call the addUser method from context
+          window.location.reload();
           alert("New user added successfully!");
           navigate("/users"); // Navigate to users page on success
         } catch (error) {

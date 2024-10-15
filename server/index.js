@@ -40,7 +40,7 @@ const userSchema = new mongoose.Schema({
   isLoggedIn: { type: Boolean, default: false },
 });
 
-// Create the user model
+// Create the user model/Class
 const User = mongoose.model("User", userSchema);
 
 // General error handling middleware
@@ -83,7 +83,7 @@ app.post("/userExists", async (req, res) => {
   res.json({ exists: userExists });
 });
 
-// for UserProfile fetching
+// for UserProfile fetching/mounting
 app.post("/getUserName", async (req, res) => {
   const token = req.headers.authorization?.split(" ")[1];
 
@@ -113,8 +113,6 @@ app.post("/getUserName", async (req, res) => {
 /* ======================
 User Login and Logout
 ====================== */
-
-// User Login - POST /login
 
 // User Login - POST /login
 app.post("/login", async (req, res) => {
@@ -176,7 +174,7 @@ app.post("/logout", async (req, res) => {
 User management
 ====================== */
 
-// Get all users - GET /users USERCONTEXT line 18
+//fetch all users - TABLE MOUNTING
 app.get("/userlist", async (req, res) => {
   try {
     const users = await readData(); // Fetch all users from the MongoDB 'users' collection
@@ -207,73 +205,9 @@ app.get("/userlist", async (req, res) => {
   }
 });
 
-//GEt user by tokenized ID from table/EditForm request
-app.get("/users/:id", async (req, res) => {
-  const tokenId = req.params.id; // Get the tokenized ID from the route parameters
-
-  if (!tokenId) {
-    return res.status(400).json({ message: "Tokenized ID required" });
-  }
-
-  try {
-    // Decode the token to get the user ID
-    const decoded = jwt.verify(tokenId, JWT_SECRET); // Ensure this secret is correctly set
-    const userId = decoded.id; // Extract user ID from the token
-
-    // You can use readData() to fetch users or directly find the user
-    const user = await User.findById(userId); // Fetch the user directly using Mongoose
-
-    if (user) {
-      res.json({ name: user.name, email: user.email });
-    } else {
-      res.status(404).json({ message: "User not found" });
-    }
-  } catch (error) {
-    console.error("Error fetching user:", error);
-    if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({ message: "Invalid token" });
-    }
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-// CREATE NEW User - POST /users
+// CREATE NEW User 
 app.post("/users", async (req, res) => {
-  // Verify the authToken and extract admin ID
-  const authToken = req.headers["authorization"]?.split(" ")[1];
-
-  if (!authToken) {
-    return res.status(401).json({ message: "No token provided." });
-  }
-
-  try {
-    const decoded = jwt.verify(authToken, process.env.JWT_SECRET);
-    const adminId = decoded._id;
-    const users = await readData();
-    const verified = users.find((user) => user._id.toString() === adminId);
-
-    // Check if the admin exists in the database
-    if (verified) {
-      const newUser = {
-        isLoggedIn: false,
-        ...req.body,
-      };
-      const result = await usersCollection.insertOne(newUser);
-      res.status(201).json({ ...newUser, _id: result.insertedId });
-    } else {
-      return res
-        .status(403)
-        .json({ message: "Admin not found or unauthorized." });
-    }
-  } catch (error) {
-    res.status(500).json({ message: "Failed to add user: " + error.message });
-  }
-});
-
-// UPDATE EXISTING User - PATCH /users/token
-app.patch("/users/:id", async (req, res) => {
-  const userIdToken = req.params.id; // Extract the user ID from the URL params
-  const authToken = req.headers.authorization?.split(" ")[1]; // Extract authToken from the headers
+  const authToken = req.headers.authorization?.split(" ")[1];
 
   // Check if authToken is present
   if (!authToken) {
@@ -281,49 +215,37 @@ app.patch("/users/:id", async (req, res) => {
   }
 
   try {
-    const decodedAuthToken = jwt.verify(authToken, JWT_SECRET); // Verify token and extract admin ID
-    const userIdFromAuthToken = decodedAuthToken.id; // Extract _id from the authToken
+    // Verify authToken and extract admin ID
+    const decodedAuthToken = jwt.verify(authToken, JWT_SECRET);
+    const adminId = decodedAuthToken.id; // Extract admin _id from the token
 
-    const decodedUserIdToken = jwt.verify(userIdToken, JWT_SECRET); // verify tokenized ID
-    const userID = decodedUserIdToken.id; // Extract _id from the tokenized ID
-
-    // Read users from data to check if the user exists
+    // Read users from data to check if the admin exists
     const users = await readData();
-
-    const adminUser = users.find(
-      (u) => u._id.toString() === userIdFromAuthToken
-    ); // Check for _id (converted to string)
+    const adminUser = users.find((u) => u._id.toString() === adminId);
 
     // If admin user is found
     if (!adminUser) {
       return res.status(404).json({ message: "Admin user not found" });
-    } else if (adminUser) {
-      // Find the user to be updated by ID
-      const userToUpdate = users.find((u) => u._id.toString() === userID); // Find the user by param.id
-
-      if (!userToUpdate) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Update user information with the contents of updatedUser
-      userToUpdate.name = req.body.name || userToUpdate.name; // Update name if provided
-      userToUpdate.email = req.body.email || userToUpdate.email; // Update email if provided
-      userToUpdate.password = req.body.newPassword || userToUpdate.password; // Update password if provided
-
-      await writeData(users); // Write changes to the database
-
-      return res.status(200).json({ message: "User updated successfully" });
-    } else {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to modify this user" });
     }
-  } catch (err) {
-    console.error("Error updating user:", err);
-    return res.status(401).json({ message: "Invalid token" });
+
+    // Prepare the new user object
+    const newUser = {
+      isLoggedIn: false,
+      ...req.body, // Spread the request body into newUser
+    };
+
+    // Insert the new user into the database using User.create()
+    const createdUser = await User.create(newUser);
+
+    // Respond with the new user's data and ID
+    res.status(201).json({ ...createdUser._doc }); // Return the created user object
+  } catch (error) {
+    console.error("Failed to add user:", error);
+    res.status(500).json({ message: "Failed to add user: " + error.message });
   }
 });
 
+// DELETE USER
 app.delete("/users/:id", async (req, res) => {
   const authToken = req.headers.authorization?.split(" ")[1];
   const decodedAuthToken = jwt.verify(authToken, JWT_SECRET);
@@ -357,13 +279,87 @@ app.delete("/users/:id", async (req, res) => {
   }
 });
 
+//EditForm fields mounting
+app.get("/users/:id", async (req, res) => {
+  const tokenId = req.params.id; // Get the tokenized ID from the route parameters
+
+  if (!tokenId) {
+    return res.status(400).json({ message: "Tokenized ID required" });
+  }
+
+  try {
+    // Decode the token to get the user ID
+    const decoded = jwt.verify(tokenId, JWT_SECRET); // Ensure this secret is correctly set
+    const userId = decoded.id; // Extract user ID from the token
+
+    // You can use readData() to fetch users or directly find the user
+    const user = await User.findById(userId); // Fetch the user directly using Mongoose
+
+    if (user) {
+      res.json({ name: user.name, email: user.email });
+    } else {
+      res.status(404).json({ message: "User not found" });
+    }
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// UPDATE EXISTING User - PATCH /users/token
+app.patch("/users/:id", async (req, res) => {
+  const userIdToken = req.params.id; // Extract the user ID from the URL params
+  const authToken = req.headers.authorization?.split(" ")[1]; // Extract authToken from the headers
+  // Check if authToken is present
+  if (!authToken) {
+    return res.status(401).json({ message: "Token required" });
+  }
+  try {
+    const decodedAuthToken = jwt.verify(authToken, JWT_SECRET); // Verify token and extract admin ID
+    const userIdFromAuthToken = decodedAuthToken.id; // Extract _id from the authToken
+    const decodedUserIdToken = jwt.verify(userIdToken, JWT_SECRET); // verify tokenized ID
+    const userID = decodedUserIdToken.id; // Extract _id from the tokenized ID
+    // Read users from data to check if the user exists
+    const users = await readData();
+    const adminUser = users.find(
+      (u) => u._id.toString() === userIdFromAuthToken
+    ); // Check for _id (converted to string)
+    // If admin user is found
+    if (!adminUser) {
+      return res.status(404).json({ message: "Admin user not found" });
+    } else if (adminUser) {
+      // Find the user to be updated by ID
+      const userToUpdate = users.find((u) => u._id.toString() === userID); // Find the user by param.id
+      if (!userToUpdate) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      // Update user information with the contents of updatedUser
+      userToUpdate.name = req.body.name || userToUpdate.name; // Update name if provided
+      userToUpdate.email = req.body.email || userToUpdate.email; // Update email if provided
+      userToUpdate.password = req.body.password || userToUpdate.password; // Update password if provided
+      await writeData(users); // Write changes to the database
+      return res.status(200).json({ message: "User updated successfully" });
+    } else {
+      return res
+        .status(403)
+        .json({ message: "You are not authorized to modify this user" });
+    }
+  } catch (err) {
+    console.error("Error updating user:", err);
+    return res.status(401).json({ message: "Invalid token" });
+  }
+});
+
 /* ======================
 User Settings
 ====================== */
 
 // POST /settings - Get user data
 
-// Fetch User Settings - POST /settings
+//SettingsForm fields mounting
 app.post("/settings", async (req, res) => {
   const token = req.headers.authorization.split(" ")[1];
   const decodedToken = jwt.verify(token, JWT_SECRET);

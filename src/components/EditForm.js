@@ -94,7 +94,7 @@ const EditForm = () => {
         const updatedUser = {
           name,
           email,
-          confirmPassword, // Ensure password is included
+          password, // Ensure password is included
         };
 
         // Use the modifyUser function from UserContext

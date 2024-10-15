@@ -15,6 +15,7 @@ const Table = () => {
 
   const handleDelete = (id) => {
     if (id) {
+      window.location.reload();
       deleteUser(id); // Call deleteUser with the ID
       setShowDialog(false); // Close the dialog after deletion
     }

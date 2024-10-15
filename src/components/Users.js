@@ -1,16 +1,17 @@
-import React from 'react';
-import Table from './Table';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from './contexts/AuthContext';
-import UserProfile from './UserProfile';
+import React, { useEffect } from "react";
+import Table from "./Table";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "./contexts/AuthContext";
+import UserProfile from "./UserProfile";
 
 function Users() {
+
   const { logout } = useAuth(); // Use the logout function from AuthContext
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout(); // Log the user out
-    navigate('/login'); // Redirect to the login page
+    navigate("/login"); // Redirect to the login page
   };
 
   return (
